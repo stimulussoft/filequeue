@@ -10,9 +10,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * @author Jamie Band (Stimulus Software)
- * @author Valentin Popov (Stimulus Software)
  */
 package com.stimulussoft.filequeue;
 
@@ -20,9 +17,15 @@ import org.slf4j.Logger;
 
 import java.io.Serializable;
 
-public class FileQueueException extends Exception implements Serializable {
+/**
+ * General file queue exception
+ *
+ * @author Valentin Popov (Stimulus Software)
+ * @author Jamie Band (Stimulus Software)
+ */
 
-    private static final long serialVersionUID = -8353177202907981954L;
+public class FileQueueException extends Exception  {
+
 
     public FileQueueException(String message, Logger logger) {
         super(message);

@@ -22,8 +22,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by Valentin Popov popov@mailarchiva.ru on 07/12/2017.
+ * DelayRejectPolicy
+ *
+ * @author Jamie Band (Stimulus Software)
+ * @author Valentin Popov (Stimulus Software)
  */
+
 class DelayRejectPolicy implements RejectedExecutionHandler {
     private final long timeOut;
     private final TimeUnit timeUnit;

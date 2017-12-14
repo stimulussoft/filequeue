@@ -10,8 +10,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * @author Jamie Band (Stimulus Software)
- * @author Valentin Popov (Stimulus Software)
  */
 
 package com.stimulussoft.filequeue;
@@ -28,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
-/*
+/**
  * FileQueue is a fast and efficient persistent filequeue written in Java. FileQueue is backed by H2 Database MVStore.
  * To cater for situations where filequeue items could not be processed, it supports retry logic. As the filequeue is
  * persistent, if the program is quit and started again, it will begin where it left off. Refer to
@@ -42,7 +40,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *  4) Call startQueue() to start the filequeue
  *  5) Call stopQueue() to stop the filequeue processing
  *
- * To see example, refer to FileQueueTest
+ * To see example, refer to com.stimulussoft.filequeue.FileQueueTest
+ *
+ * @author Jamie Band (Stimulus Software)
+ * @author Valentin Popov (Stimulus Software)
+ *
  */
 
 public abstract class FileQueue {
@@ -58,6 +60,7 @@ public abstract class FileQueue {
     protected int tryDelaySecs = 0;
     protected int maxQueueSize = Integer.MAX_VALUE;
     protected AdjustableSemaphore permits = new AdjustableSemaphore();
+    protected int minFreeSpaceMb = 20;
     private QueueProcessor<FileQueueItem> transferQueue;
 
     final Consumer<FileQueueItem> fileQueueConsumer = item -> {
@@ -104,9 +107,9 @@ public abstract class FileQueue {
      * initialize a @{@link FileQueue} at queuePath with a maximum queue size.
      * This method must be called if the filequeue class is initialized using the default constructor.
      *
-     * @param queueName
-     * @param queuePath
-     * @param maxQueueSize
+     * @param queueName name of the queue
+     * @param queuePath location on disk where the queue database resides
+     * @param maxQueueSize maximum no. items in the queue
      */
 
     public void init(String queueName, Path queuePath, int maxQueueSize) {
@@ -122,6 +125,7 @@ public abstract class FileQueue {
     /**
      * Override this method to return a custom FileQueueItem.class.
      * The FileQueueItem class is a must be serializable using Jackson JSON.
+     * @return filequeueitem class
      */
 
     public abstract Class getFileQueueItemClass();
@@ -133,6 +137,7 @@ public abstract class FileQueue {
      *
      * @param item item for queuing
      * @return process result
+     * @throws InterruptedException if processing was interrupted due to shutdown
      */
 
     public abstract ProcessResult processFileQueueItem(FileQueueItem item) throws InterruptedException;
@@ -149,7 +154,7 @@ public abstract class FileQueue {
     /**
      * set maximum filequeue size
      *
-     * @param maxQueueSize
+     * @param maxQueueSize maximum no items in the queue
      */
 
     public void setMaxQueueSize(int maxQueueSize) {
@@ -163,16 +168,15 @@ public abstract class FileQueue {
 
     /**
      * Start the queue engine
+     * @throws FileQueueException if processing was interrupted due to shutdown
      */
 
     public void startQueue() throws FileQueueException {
-        logger.debug("going to start filequeue... {isStarted='" + isStarted + "'}");
         assert queueName != null;
         assert queuePath != null;
         synchronized (this) {
             if (!isStarted.get()) {
                 permits.setMaxPermits(maxQueueSize);
-                logger.debug("startQueue {queueName='" + queueName + "'}");
                 try {
                     initQueue();
                     isStarted.set(true);
@@ -183,9 +187,6 @@ public abstract class FileQueue {
                 } catch (Exception e) {
                     throw new FileQueueException("failed to start filequeue:" + e.getMessage(), e, logger);
                 }
-                logger.debug("filequeue isStarted {queueName='" + queueName + "'}");
-            } else {
-                logger.debug("filequeue processor already isStarted {queueName='" + queueName + "'}");
             }
         }
     }
@@ -207,7 +208,6 @@ public abstract class FileQueue {
 
     public void stopQueue() {
         if (isStarted.compareAndSet(true, false)) {
-            logger.debug("stop filequeue processor {',queueName='" + queueName + "'}");
             try {
                 transferQueue.close();
             } finally {
@@ -217,9 +217,6 @@ public abstract class FileQueue {
                     Runtime.getRuntime().removeShutdownHook(shutdownHook);
                 }
             }
-            logger.debug("filequeue processor stopped {queueName='" + queueName + "'}");
-        } else {
-            logger.debug("filequeue processor already stopped {writeQueue='queueName='" + queueName + "'}");
         }
     }
 
@@ -230,9 +227,18 @@ public abstract class FileQueue {
      * @param block whether to block if filequeue is full or throw an exception
      * @param acquireWait time to wait before checking if shutdown has occurred
      * @param acquireWaitUnit time unit for acquireWait above wait
+     * @throws FileQueueException general filequeue error
+     * @throws InterruptedException queuing was interrupted due to shutdown
      */
 
-    public void queueItem(final FileQueueItem fileQueueItem, boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
+    public void queueItem(final FileQueueItem fileQueueItem, boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws FileQueueException, InterruptedException {
+
+        assert fileQueueItem != null;
+        assert acquireWaitUnit != null;
+
+        if (acquireWait<0)
+            throw new IllegalArgumentException("acquire wait must be zero or greater");
+
         try {
             ready(block, acquireWait, acquireWaitUnit);
         } catch (Exception e) {
@@ -245,20 +251,19 @@ public abstract class FileQueue {
      * Queue item for delivery (no blocking)
      *
      * @param fileQueueItem item for queuing
+     * @throws FileQueueException if a general exception occurred
      */
 
     public void queueItem(final FileQueueItem fileQueueItem) throws FileQueueException {
+
+        assert fileQueueItem != null;
+
         if (!isStarted.get()) {
             throw new FileQueueException("filequeue " + queuePath + " is not started yet. {maxQueueSize='" + maxQueueSize + "'}");
         }
 
-        if (fileQueueItem == null) {
-            throw new FileQueueException("precondition: attempt to insert null item to filequeue.");
-        }
-
-        if (maxTries > 0 && !(fileQueueItem instanceof RetryQueueItem)) {
-            throw new FileQueueException ("since max tries > 0, item must be subclasses retryqueueitem");
-        }
+        if (maxTries > 0 && !(fileQueueItem instanceof RetryQueueItem))
+            throw new IllegalArgumentException("since max tries > 0, item must be subclasses retryqueueitem");
 
         try {
             transferQueue.submit(fileQueueItem);
@@ -281,6 +286,7 @@ public abstract class FileQueue {
 
     /**
      * Return filequeue size
+     * @return no items in the queue
      */
 
     public long getQueueSize() {
@@ -301,7 +307,7 @@ public abstract class FileQueue {
 
     /**
      * Set filequeue name
-     * @@param filequeue name
+     * @param queueName friendly name of queue
      */
 
 
@@ -346,32 +352,34 @@ public abstract class FileQueue {
      * @param block whether to block if filequeue is full or throw an exception
      * @param acquireWait time to wait before checking if shutdown has occurred
      * @param acquireWaitUnit time unit for acquireWait above wait
+     * @throws FileQueueException if general exception occurred
+     * @throws InterruptedException if waiting was interrupted due to shutdown
      */
 
 
-    public void ready(boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
+    public void ready(boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws FileQueueException, InterruptedException {
+        
+        assert acquireWaitUnit != null;
+
+        if (acquireWait<0)
+            throw new IllegalArgumentException("acquire wait must be zero or greater");
+        
         if (!isStarted.get())
             throw new FileQueueException("filequeue " + queuePath + " is not started yet. {maxQueueSize='" + maxQueueSize + "'}");
 
         File queuePathFile = queuePath.toFile();
 
-        int MIN_FREE_SPACE_MB = 200;
         if (block) {
             boolean acquired = false;
             while (isStarted.get() && !acquired) {
-                try {
-                    acquired = permits.tryAcquire(acquireWait, acquireWaitUnit);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new Exception(e);
-                }
+                acquired = permits.tryAcquire(acquireWait, acquireWaitUnit);
             }
 
             long freeSpace = queuePathFile.getUsableSpace();
-            if (freeSpace <= MIN_FREE_SPACE_MB * 1024 * 1024) {
-                logger.warn("not enough disk space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + MIN_FREE_SPACE_MB + "mb'}. blocking operations until diskspace is freed.");
+            if (freeSpace <= minFreeSpaceMb * 1024 * 1024) {
+                logger.warn("not enough disk space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}. blocking operations until diskspace is freed.");
             }
-            while (isStarted.get() && freeSpace <= MIN_FREE_SPACE_MB * 1024 * 1024) {
+            while (isStarted.get() && freeSpace <= minFreeSpaceMb * 1024 * 1024) {
                 freeSpace = queuePathFile.getUsableSpace();
                 int DISKSPACE_CHECK_DELAY_MSEC = 1000;
                 Thread.sleep(DISKSPACE_CHECK_DELAY_MSEC);
@@ -381,12 +389,30 @@ public abstract class FileQueue {
                 throw new FileQueueException("filequeue " + queuePath + " is full. {maxQueueSize='" + maxQueueSize + "'}");
             long freeSpace = queuePathFile.getUsableSpace();
 
-            if (freeSpace <= MIN_FREE_SPACE_MB * 1024 * 1024) {
-                throw new FileQueueException("not enough free space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + MIN_FREE_SPACE_MB + "mb'}");
+            if (freeSpace <= minFreeSpaceMb * 1024 * 1024) {
+                throw new FileQueueException("not enough free space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}");
             }
         }
     }
 
+    /**
+     * Set minimum free space to allow before a new item will be accepted on the queue
+     * @param minFreeSpaceMb free space in MB
+     */
+
+    public void setMinFreeSpaceMb(int minFreeSpaceMb) {
+        this.minFreeSpaceMb = minFreeSpaceMb;
+    }
+
+    /**
+     * Return minimum free space to allow before a new item will be accepted on the queue
+     * @return free space in MB
+     */
+    
+    public int getMinFeeSpaceMb() {
+        return minFreeSpaceMb;
+    }
+    
     /**
      * Return no items in filequeue
      * @return no queued items

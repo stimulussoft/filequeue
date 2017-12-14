@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileQueueTest {
 
-    static final int ROUNDS = 5000;
+    static final int ROUNDS = 1000;
     static final int RETRIES = 3;
     static final int RETRYDELAY = 0;
     static final int MAXQUEUESIZE = 100;

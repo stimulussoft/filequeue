@@ -10,10 +10,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
-
- * @author Valentin Popov (performance refactoring)
- * @author Jamie Band (adaptation to MVStore, added multithreaded consumer support & retry delay option)
  */
 
 package com.stimulussoft.filequeue;
@@ -30,6 +26,17 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
+
+/**
+ *
+ * Queue processor. This class is thread-safe.
+ *
+ * @author Valentin Popov
+ * @author Jamie Band
+ * Thanks for Martin Grotze for his original work on Persistent Queue
+ *
+ */
+
 
 class QueueProcessor<T> {
 

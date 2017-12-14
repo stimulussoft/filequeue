@@ -20,9 +20,12 @@ package com.stimulussoft.filequeue;
 
 import java.util.Date;
 
-/*
- *  Your custom QueueItem should extends this abstract class.
- *  It will be serialized/deserialized using Jackson JSON.
+/**
+ * Your custom QueueItem should extends this abstract class.
+ * It will be serialized/deserialized using Jackson JSON.
+ *
+ * @author Valentin Popov
+ * @author Jamie Band
  *
  */
 

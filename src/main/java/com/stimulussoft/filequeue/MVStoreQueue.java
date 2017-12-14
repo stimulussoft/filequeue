@@ -11,11 +11,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @author Valentin Popov (performance refactorings)
- * @author Jamie Band (adaptation to MVStore, added multithreaded consumer support & retry delay option)
- * Thanks for Martin Grotze for his original work on Persistent Queue
- *
- * Fast queue implementation on top of MVStore. This class is thread-safe.
  */
 
 package com.stimulussoft.filequeue;
@@ -31,6 +26,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ *
+ * Fast queue implementation on top of MVStore. This class is thread-safe.
+ *
+ * @author Valentin Popov
+ * @author Jamie Band
+ * Thanks for Martin Grotze for his original work on Persistent Queue
+ *
+ */
 
 class MVStoreQueue implements Comparable<MVStoreQueue> {
 

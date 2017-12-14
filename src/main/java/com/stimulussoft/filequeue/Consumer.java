@@ -13,9 +13,13 @@ package com.stimulussoft.filequeue;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @author Jamie Band (Stimulus Software)
- * @author Valentin Popov (Stimulus Software)
  */
+
+/**
+ * Consumer
+ *
+ * @author Jamie Band (Stimulus Software)
+ * @author Valentin Popov (Stimulus Software) */
 
 public interface Consumer<T> {
 
@@ -24,6 +28,7 @@ public interface Consumer<T> {
      *
      * @param item the item to handle.
      * @return <code>true</code> if the item was processed successfully and shall be removed from the filequeue.
+     * @throws InterruptedException if thread was interrupted due to shutdown
      */
     boolean consume(T item) throws InterruptedException;
 
