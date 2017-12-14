@@ -21,7 +21,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -169,25 +171,20 @@ public abstract class FileQueue {
     /**
      * Start the queue engine
      * @throws FileQueueException if processing was interrupted due to shutdown
+     * @throws IOException if error reading the db
      */
 
-    public void startQueue() throws FileQueueException {
+    public synchronized void startQueue() throws FileQueueException, IOException {
         assert queueName != null;
-        assert queuePath != null;
-        synchronized (this) {
-            if (!isStarted.get()) {
-                permits.setMaxPermits(maxQueueSize);
-                try {
-                    initQueue();
-                    isStarted.set(true);
-                    if (shutdownHook == null)
-                        shutdownHook = new ShutdownHook();
-                    Runtime.getRuntime().removeShutdownHook(shutdownHook);
-                    Runtime.getRuntime().addShutdownHook(shutdownHook);
-                } catch (Exception e) {
-                    throw new FileQueueException("failed to start filequeue:" + e.getMessage(), e, logger);
-                }
-            }
+        assert queuePath!=null;
+        if (!isStarted.get()) {
+            permits.setMaxPermits(maxQueueSize);
+            initQueue();
+            isStarted.set(true);
+            if (shutdownHook == null)
+                shutdownHook = new ShutdownHook();
+            Runtime.getRuntime().removeShutdownHook(shutdownHook);
+            Runtime.getRuntime().addShutdownHook(shutdownHook);
         }
     }
 
@@ -196,17 +193,18 @@ public abstract class FileQueue {
      */
 
     private void initQueue() throws IOException, FileQueueException {
+        assert queuePath!=null;
+        assert queueName!=null;
         Files.createDirectories(queuePath);
         transferQueue = new QueueProcessor<>(queuePath, queueName, getFileQueueItemClass(), maxTries,
                 tryDelaySecs, fileQueueConsumer);
     }
 
-
     /**
      * Stop the queue. Call this method when the queue engine must be shutdown.
      */
 
-    public void stopQueue() {
+    public synchronized void stopQueue() {
         if (isStarted.compareAndSet(true, false)) {
             try {
                 transferQueue.close();
@@ -235,9 +233,7 @@ public abstract class FileQueue {
 
         assert fileQueueItem != null;
         assert acquireWaitUnit != null;
-
-        if (acquireWait<0)
-            throw new IllegalArgumentException("acquire wait must be zero or greater");
+        assert acquireWait >= 0;
 
         try {
             ready(block, acquireWait, acquireWaitUnit);
@@ -257,10 +253,7 @@ public abstract class FileQueue {
     public void queueItem(final FileQueueItem fileQueueItem) throws FileQueueException {
 
         assert fileQueueItem != null;
-
-        if (!isStarted.get()) {
-            throw new FileQueueException("filequeue " + queuePath + " is not started yet. {maxQueueSize='" + maxQueueSize + "'}");
-        }
+        assert isStarted.get();
 
         if (maxTries > 0 && !(fileQueueItem instanceof RetryQueueItem))
             throw new IllegalArgumentException("since max tries > 0, item must be subclasses retryqueueitem");
@@ -360,12 +353,8 @@ public abstract class FileQueue {
     public void ready(boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws FileQueueException, InterruptedException {
         
         assert acquireWaitUnit != null;
-
-        if (acquireWait<0)
-            throw new IllegalArgumentException("acquire wait must be zero or greater");
-        
-        if (!isStarted.get())
-            throw new FileQueueException("filequeue " + queuePath + " is not started yet. {maxQueueSize='" + maxQueueSize + "'}");
+        assert acquireWait >=0;
+        assert isStarted.get();
 
         File queuePathFile = queuePath.toFile();
 
