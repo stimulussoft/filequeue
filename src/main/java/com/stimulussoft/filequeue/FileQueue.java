@@ -173,8 +173,7 @@ public abstract class FileQueue {
             permits.setMaxPermits(maxQueueSize);
             initQueue();
             isStarted.set(true);
-            if (shutdownHook == null)
-                shutdownHook = new ShutdownHook();
+            shutdownHook = new ShutdownHook();
             Runtime.getRuntime().removeShutdownHook(shutdownHook);
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         }
@@ -202,10 +201,7 @@ public abstract class FileQueue {
                 transferQueue.close();
             } finally {
                 permits.release(permits.drainPermits());
-
-                if (shutdownHook != null) {
-                    Runtime.getRuntime().removeShutdownHook(shutdownHook);
-                }
+                Runtime.getRuntime().removeShutdownHook(shutdownHook);
             }
         }
     }
@@ -361,21 +357,20 @@ public abstract class FileQueue {
             }
 
             long freeSpace = queuePathFile.getUsableSpace();
-            if (freeSpace <= minFreeSpaceMb * 1024 * 1024) {
+            if (freeSpace <= (long)minFreeSpaceMb * 1024L * 1024L)
                 logger.warn("not enough disk space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}. blocking operations until diskspace is freed.");
-            }
-            while (isStarted.get() && freeSpace <= minFreeSpaceMb * 1024 * 1024) {
+
+            while (isStarted.get() && freeSpace <= (long)minFreeSpaceMb * 1024L * 1024L) {
                 freeSpace = queuePathFile.getUsableSpace();
                 Thread.sleep(diskSpaceCheckDelayMsec);
             }
         } else {
             if (!permits.tryAcquire(acquireWait, acquireWaitUnit))
                 throw new IOException("filequeue " + queuePath + " is full. {maxQueueSize='" + maxQueueSize + "'}");
-            long freeSpace = queuePathFile.getUsableSpace();
 
-            if (freeSpace <= minFreeSpaceMb * 1024 * 1024) {
+            long freeSpace = queuePathFile.getUsableSpace();
+            if (freeSpace <= (long)minFreeSpaceMb * 1024L * 1024L)
                 throw new IOException("not enough free space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}");
-            }
         }
     }
 
