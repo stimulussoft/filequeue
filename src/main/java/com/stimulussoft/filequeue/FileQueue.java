@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * FileQueue is a fast and efficient persistent filequeue written in Java. FileQueue is backed by H2 Database MVStore.
  * To cater for situations where filequeue items could not be processed, it supports retry logic. As the filequeue is
  * persistent, if the program is quit and started again, it will begin where it left off. Refer to
- * <a href="https://github.com/jamieb22/filequeue">filequeue github page</a> for more info.
+ * <a href="https://github.com/stimulussoft/filequeue">filequeue github page</a> for more info.
  *
  *  1) Implement FileQueueItem or extend RetryQueueItem (for retry support)
  *  2) Implement a class that extends FileQueue

@@ -107,7 +107,7 @@ FileQueue is copyright Stimulus Software, implemented by Valentin Popov and Jami
 Thanks for Martin Grotze for his original work on Persistent Queue. FileQueue now uses a completely different approach and
 implementation.
 
-Any contributions are welcome, so if you're missing the functionality you need, you're invited to submit a pull request or just [submit an issue](https://github.com/jamieb22/filequeue/issues).
+Any contributions are welcome, so if you're missing the functionality you need, you're invited to submit a pull request or just [submit an issue](https://github.com/stimulussoft/filequeue/issues).
 
 # License
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this project except in compliance with the License. You may obtain a copy of the License at ttp://www.apache.org/licenses/LICENSE-2.0.
