@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <url>https://github.com/jamieb22/filequeue.git</url>
+    <issueManagement>
+        <system>github.com</system>
+        <url>https://github.com/jamieb22/filequeue/issues</url>
+    </issueManagement>
+    <inceptionYear>2016</inceptionYear>
+    <prerequisites>
+        <maven>2.0.9</maven>
+    </prerequisites>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/lic.enses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <connection>scm:git:git@github.com:jamieb22/filequeue.git</connection>
+        <developerConnection>scm:git:git@github.com:jamieb22/filequeue.git</developerConnection>
+        <url>git@github.com:jamieb22/filequeue.git</url>
+    </scm>
+    <developers>
+        <developer>
+            <id>valenpo</id>
+            <name>Valentin Popov</name>
+            <email>valentin@stimulussoft.com</email>
+            <roles>
+                <role>developer</role>
+            </roles>
+            <timezone>+4</timezone>
+        </developer>
+        <developer>
+            <id>jamieb22</id>
+            <name>Jamie Band</name>
+            <email>jamie@stimulussoft.com</email>
+            <roles>
+                <role>owner</role>
+                <role>developer</role>
+            </roles>
+            <timezone>+2</timezone>
+        </developer>
+    </developers>
+    <groupId>com.stimulussoft</groupId>
+    <artifactId>filequeue</artifactId>
+    <packaging>pom</packaging>
+    <name>file queue project</name>
+    <description>High performance queue</description>
+    <version>1.0</version>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2-mvstore</artifactId>
+            <version>1.4.196</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.25</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.9.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.9.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>23.0</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+</project>
+
