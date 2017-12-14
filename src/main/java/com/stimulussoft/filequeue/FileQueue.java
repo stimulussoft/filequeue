@@ -51,18 +51,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class FileQueue {
 
-    protected static final String BLOB_EXTENSION = ".blob";
     protected Logger logger = LoggerFactory.getLogger("com.stimulussoft.archiva");
     protected String queueName;
     protected ShutdownHook shutdownHook;
     protected AtomicBoolean isStarted = new AtomicBoolean();
-    protected AtomicBoolean isInitialized = new AtomicBoolean();
     protected Path queuePath;
     protected int maxTries = 0;
     protected int tryDelaySecs = 0;
     protected int maxQueueSize = Integer.MAX_VALUE;
     protected AdjustableSemaphore permits = new AdjustableSemaphore();
     protected int minFreeSpaceMb = 20;
+    protected int diskSpaceCheckDelayMsec = 20;
     private QueueProcessor<FileQueueItem> transferQueue;
 
     final Consumer<FileQueueItem> fileQueueConsumer = item -> {
@@ -370,8 +369,7 @@ public abstract class FileQueue {
             }
             while (isStarted.get() && freeSpace <= minFreeSpaceMb * 1024 * 1024) {
                 freeSpace = queuePathFile.getUsableSpace();
-                int DISKSPACE_CHECK_DELAY_MSEC = 1000;
-                Thread.sleep(DISKSPACE_CHECK_DELAY_MSEC);
+                Thread.sleep(diskSpaceCheckDelayMsec);
             }
         } else {
             if (!permits.tryAcquire(acquireWait, acquireWaitUnit))
@@ -402,6 +400,29 @@ public abstract class FileQueue {
         return minFreeSpaceMb;
     }
     
+    /**
+     * Return no items in filequeue
+     * @return no queued items
+     */
+
+    /**
+     * Set minimum free space to allow before a new item will be accepted on the queue
+     * @param diskSpaceCheckDelayMsec diskspace check delay in msec
+     */
+
+    public void setDiskSpaceCheckDelayMsec(int diskSpaceCheckDelayMsec) {
+        this.diskSpaceCheckDelayMsec = diskSpaceCheckDelayMsec;
+    }
+
+    /**
+     * Return milliseconds to wait before checking the diskspace again
+     * @return diskspace check delay in msec
+     */
+
+    public int getDiskSpaceCheckDelayMsec() {
+        return diskSpaceCheckDelayMsec;
+    }
+
     /**
      * Return no items in filequeue
      * @return no queued items

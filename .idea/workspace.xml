@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="2c0f753e-c31b-43a4-b55d-4153d9ab5ca9" name="Default" comment="">
+    <list default="true" id="2c0f753e-c31b-43a4-b55d-4153d9ab5ca9" name="Default" comment="added">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java" afterPath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java" />
     </list>
@@ -33,7 +33,7 @@
         <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="261">
-              <caret line="80" column="45" lean-forward="true" selection-start-line="80" selection-start-column="45" selection-end-line="80" selection-end-column="45" />
+              <caret line="80" column="45" lean-forward="false" selection-start-line="80" selection-start-column="45" selection-end-line="80" selection-end-column="45" />
               <folding>
                 <element signature="e#0#9972#0" expanded="true" />
                 <element signature="imports" expanded="true" />
@@ -47,15 +47,14 @@
       <file leaf-file-name="FileQueue.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1812">
-              <caret line="61" column="35" lean-forward="true" selection-start-line="61" selection-start-column="35" selection-end-line="61" selection-end-column="35" />
+            <state relative-caret-position="-2544">
+              <caret line="16" column="37" lean-forward="true" selection-start-line="16" selection-start-column="37" selection-end-line="16" selection-end-column="37" />
               <folding>
-                <element signature="e#0#13865#0" expanded="true" />
-                <element signature="imports" expanded="true" />
-                <element signature="e#3785#3786#0" expanded="true" />
-                <element signature="e#3841#3842#0" expanded="true" />
-                <element signature="e#10350#10351#0" expanded="true" />
-                <element signature="e#10392#10393#0" expanded="true" />
+                <element signature="e#0#14357#0" expanded="true" />
+                <element signature="e#3708#3709#0" expanded="true" />
+                <element signature="e#3764#3765#0" expanded="true" />
+                <element signature="e#10273#10274#0" expanded="true" />
+                <element signature="e#10315#10316#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -150,10 +149,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>packing</find>
-      <find>url</find>
-      <find>scm</find>
-      <find>Martin Grotzke</find>
       <find>done(</find>
       <find>new ProcessItem</find>
       <find>com.ti</find>
@@ -180,6 +175,10 @@
       <find>init(</find>
       <find>isV</find>
       <find>asset</find>
+      <find>CheckOu</find>
+      <find>inti</find>
+      <find>DELAY</find>
+      <find>minFreeSpace</find>
     </findStrings>
     <replaceStrings>
       <replace>FileQueueItem</replace>
@@ -545,7 +544,7 @@
       <option name="presentableId" value="Default" />
       <updated>1513150307265</updated>
       <workItem from="1513150310446" duration="12743000" />
-      <workItem from="1513167703865" duration="42373000" />
+      <workItem from="1513167703865" duration="42850000" />
     </task>
     <task id="LOCAL-00001" summary="radical rewrite">
       <created>1513205194113</created>
@@ -624,7 +623,14 @@
       <option name="project" value="LOCAL" />
       <updated>1513261706818</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="added some assertions">
+      <created>1513262677353</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1513262677353</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -660,7 +666,7 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="55116000" />
+    <option name="totallyTimeSpent" value="55593000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -752,7 +758,8 @@
     <MESSAGE value="initial commit" />
     <MESSAGE value="update javadoc" />
     <MESSAGE value="slight update to doc" />
-    <option name="LAST_COMMIT_MESSAGE" value="slight update to doc" />
+    <MESSAGE value="added some assertions" />
+    <option name="LAST_COMMIT_MESSAGE" value="added some assertions" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -818,12 +825,11 @@
         <state relative-caret-position="930">
           <caret line="62" column="41" lean-forward="false" selection-start-line="62" selection-start-column="41" selection-end-line="62" selection-end-column="41" />
           <folding>
-            <element signature="e#0#13865#0" expanded="true" />
-            <element signature="imports" expanded="true" />
-            <element signature="e#3785#3786#0" expanded="true" />
-            <element signature="e#3841#3842#0" expanded="true" />
-            <element signature="e#10350#10351#0" expanded="true" />
-            <element signature="e#10392#10393#0" expanded="true" />
+            <element signature="e#0#14357#0" expanded="true" />
+            <element signature="e#3708#3709#0" expanded="true" />
+            <element signature="e#3764#3765#0" expanded="true" />
+            <element signature="e#10273#10274#0" expanded="true" />
+            <element signature="e#10315#10316#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -1097,7 +1103,7 @@
     <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="261">
-          <caret line="80" column="45" lean-forward="true" selection-start-line="80" selection-start-column="45" selection-end-line="80" selection-end-column="45" />
+          <caret line="80" column="45" lean-forward="false" selection-start-line="80" selection-start-column="45" selection-end-line="80" selection-end-column="45" />
           <folding>
             <element signature="e#0#9972#0" expanded="true" />
             <element signature="imports" expanded="true" />
@@ -1109,15 +1115,14 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1812">
-          <caret line="61" column="35" lean-forward="true" selection-start-line="61" selection-start-column="35" selection-end-line="61" selection-end-column="35" />
+        <state relative-caret-position="-2544">
+          <caret line="16" column="37" lean-forward="true" selection-start-line="16" selection-start-column="37" selection-end-line="16" selection-end-column="37" />
           <folding>
-            <element signature="e#0#13865#0" expanded="true" />
-            <element signature="imports" expanded="true" />
-            <element signature="e#3785#3786#0" expanded="true" />
-            <element signature="e#3841#3842#0" expanded="true" />
-            <element signature="e#10350#10351#0" expanded="true" />
-            <element signature="e#10392#10393#0" expanded="true" />
+            <element signature="e#0#14357#0" expanded="true" />
+            <element signature="e#3708#3709#0" expanded="true" />
+            <element signature="e#3764#3765#0" expanded="true" />
+            <element signature="e#10273#10274#0" expanded="true" />
+            <element signature="e#10315#10316#0" expanded="true" />
           </folding>
         </state>
       </provider>
