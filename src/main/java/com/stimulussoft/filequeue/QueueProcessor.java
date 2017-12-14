@@ -28,19 +28,17 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /**
- *
  * Queue processor. This class is thread-safe.
  *
  * @author Valentin Popov
  * @author Jamie Band
  * Thanks for Martin Grotze for his original work on Persistent Queue
- *
  */
 
 
 class QueueProcessor<T> {
 
-    protected static final Logger logger = LoggerFactory.getLogger(QueueProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(QueueProcessor.class);
     private final static long SECOND_MILLIS = 1000;
     private static final ExecutorService executorService = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),
@@ -67,14 +65,29 @@ class QueueProcessor<T> {
     private int maxTries = 0;
     private int retryDelaySecs = 0;
 
-    public QueueProcessor(final Path queueROOT, final String queueName, final Class<T> type, int maxTries,
-                          int retryDelaySecs, Consumer<T> consumer) throws IOException, FileQueueException {
+    /**
+     * Create a new QueueProcessor
+     *
+     * @param queuePath path to queue database
+     * @param queueName friendly name for the queue
+     * @param type filequeueitem type
+     * @param maxTries maximum number of retries
+     * @param retryDelaySecs retry delays in secs
+     * @throws FileQueueException if the queue item could not be written or serialized
+     * @throws IllegalStateException if the queue is not running
+     * @throws IllegalArgumentException if the type cannot be serialized by jackson
+     * @throws IOException if the item could not be serialized
+     */
+
+    
+    public QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
+                          int retryDelaySecs, Consumer<T> consumer) throws IOException, IllegalStateException, IllegalArgumentException {
         objectMapper = createObjectMapper();
         if (!objectMapper.canSerialize(type)) {
             throw new IllegalArgumentException("The given type cannot be serialized by jackson " +
                     "(checked with new ObjectMapper().canSerialize(type)).");
         }
-        mvStoreQueue = new MVStoreQueue(queueROOT, queueName);
+        mvStoreQueue = new MVStoreQueue(queuePath, queueName);
         this.consumer = consumer;
         this.type = type;
         this.maxTries = maxTries;
@@ -96,7 +109,7 @@ class QueueProcessor<T> {
         return mvStoreQueue.getQueueDir().toFile();
     }
 
-    public void reopen() throws FileQueueException {
+    public void reopen() throws IllegalStateException {
         mvStoreQueue.reopen();
     }
 
@@ -105,23 +118,21 @@ class QueueProcessor<T> {
      * it will be queued on filesystem and processed after.
      *
      * @param item
-     * @throws FileQueueException
+     * @throws FileQueueException if the queue item could not be written or serialized
+     * @throws IllegalStateException if the queue is not running
+     * @throws IOException if the item could not be serialized
      */
-    public void submit(final T item) throws FileQueueException {
-        if (!doRun)
-            throw new FileQueueException("filequeue is not running");
 
+    public void submit(final T item) throws IllegalStateException, IOException {
+        if (!doRun)
+            throw new IllegalStateException("file queue is not running");
         try {
-            try {
-                restorePolled.register();
-                executorService.execute(new ProcessItem<>(consumer, item, this));
-            } catch (RejectedExecutionException | CancellationException cancel) {
-                mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
-            } finally {
-                restorePolled.arriveAndDeregister();
-            }
-        } catch (Exception io) {
-            throw new FileQueueException("failed write to file store", io);
+            restorePolled.register();
+            executorService.execute(new ProcessItem<>(consumer, item, this));
+        } catch (RejectedExecutionException | CancellationException cancel) {
+            mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
+        } finally {
+            restorePolled.arriveAndDeregister();
         }
     }
 
@@ -137,7 +148,7 @@ class QueueProcessor<T> {
         return mvStoreQueue.size();
     }
 
-    private void retry(T item) throws FileQueueException, IOException {
+    private void retry(T item) throws IOException {
         if (doRun)
             submit(item);
         else
@@ -157,7 +168,7 @@ class QueueProcessor<T> {
 
     private boolean isNeedRetry(T item) {
         if (maxTries <= 0) return false;
-            RetryQueueItem queueItem = (RetryQueueItem) item;
+        RetryQueueItem queueItem = (RetryQueueItem) item;
         return queueItem.getTryCount() < maxTries;
     }
 
@@ -268,7 +279,7 @@ class QueueProcessor<T> {
                         final T item = deserialize(toDeserialize);
                         if (item == null) continue;
                         processingQueue.submit(item);
-                    } catch (FileQueueException e) {
+                    } catch (IOException e) {
                         logger.error("Failed to process item.", e);
                         mvStoreQueue.push(toDeserialize);
                     } finally {

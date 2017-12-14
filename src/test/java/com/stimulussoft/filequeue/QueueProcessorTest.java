@@ -39,7 +39,7 @@ public class QueueProcessorTest {
     static AtomicInteger produced = new AtomicInteger(0);
 
     @Test
-    public void oneQueue() throws IOException, FileQueueException {
+    public void oneQueue() throws IOException {
 
         Path dir = Files.createTempDirectory("filequeue");
 
@@ -65,7 +65,7 @@ public class QueueProcessorTest {
                         phaser.register();
                         testQueue.submit(i1);
                         produced.incrementAndGet();
-                    } catch (FileQueueException e) {
+                    } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
@@ -106,7 +106,7 @@ public class QueueProcessorTest {
 
     private static class TestQueue extends QueueProcessor<Integer> {
 
-        public TestQueue(Path queueROOT, String queueName, Class<Integer> type, int maxTries, int retryDelaySecs, Consumer<Integer> consumer) throws IOException, FileQueueException {
+        public TestQueue(Path queueROOT, String queueName, Class<Integer> type, int maxTries, int retryDelaySecs, Consumer<Integer> consumer) throws IOException {
             super(queueROOT, queueName, type, maxTries, retryDelaySecs, consumer);
         }
     }

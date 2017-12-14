@@ -45,7 +45,7 @@ public class MVStoreQueueTest {
 
 
     @Before
-    public void prepare() throws IOException, FileQueueException {
+    public void prepare() throws IOException {
         queue = new MVStoreQueue("test");
     }
 

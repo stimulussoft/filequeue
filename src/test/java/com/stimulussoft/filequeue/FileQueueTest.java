@@ -1,8 +1,10 @@
 package com.stimulussoft.filequeue;
 
+import com.google.common.io.MoreFiles;
+import com.google.common.io.RecursiveDeleteOption;
 import org.junit.Assert;
 import org.junit.Test;
-import com.google.common.io.*;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
@@ -31,9 +33,9 @@ public class FileQueueTest {
      /* Test Without Retries */
 
     @Test
-    public void test1()  throws Exception {
+    public void test1() throws Exception {
         String queueName = "test1";
-        Path db = setup("filequeue test without retries", queueName, producedTest1, processedTest1 );
+        Path db = setup("filequeue test without retries", queueName, producedTest1, processedTest1);
         TestFileQueue queue = new TestFileQueue();
         queue.init(queueName, db, MAXQUEUESIZE);
         queue.startQueue();
@@ -50,10 +52,10 @@ public class FileQueueTest {
      /* Test With Retries */
 
     @Test
-    public void test2()  throws Exception {
+    public void test2() throws Exception {
         String queueName = "test2";
-        Path db = setup("filequeue test with retries",queueName, producedTest2, processedTest2 );
-        TestRetryFileQueue  queue = new TestRetryFileQueue();
+        Path db = setup("filequeue test with retries", queueName, producedTest2, processedTest2);
+        TestRetryFileQueue queue = new TestRetryFileQueue();
         queue.init(queueName, db, MAXQUEUESIZE);
         queue.setMaxTries(RETRIES);
         queue.setTryDelaySecs(RETRYDELAY);
@@ -68,45 +70,6 @@ public class FileQueueTest {
     }
 
     /* Implement Queue Item */
-
-    static class TestFileQueueItem implements FileQueueItem {
-
-        Integer id;
-        Boolean requeue;
-
-        public TestFileQueueItem(Integer id) {
-            this.id = id;
-        }
-
-        public TestFileQueueItem() {};
-
-        @Override
-        public String toString() {
-            return String.valueOf(id);
-        }
-
-        public Integer getId() { return id; }
-
-    }
-
-
-    /* Implement File Queue */
-
-    class TestFileQueue extends FileQueue {
-
-        public TestFileQueue() {  }
-
-        @Override
-        public Class getFileQueueItemClass() {
-           return TestFileQueueItem.class;
-        }
-
-        @Override
-        public ProcessResult processFileQueueItem(FileQueueItem item) throws InterruptedException {
-            processedTest1.incrementAndGet();
-            return ProcessResult.PROCESS_SUCCESS;
-        }
-    }
 
     private Path setup(String comment, String queueName, AtomicInteger produced, AtomicInteger processed) throws Exception {
         System.out.println(comment);
@@ -123,17 +86,41 @@ public class FileQueueTest {
         return db;
     }
 
+
+    /* Implement File Queue */
+
     private void done(AtomicInteger produced, AtomicInteger processed) throws Exception {
         while (processed.get() < ROUNDS) {
             Thread.sleep(1000);
         }
-        System.out.println("processed: "+processed.get() +" produced: "+produced.get());
+        System.out.println("processed: " + processed.get() + " produced: " + produced.get());
         Assert.assertTrue(processed.get() == produced.get());
     }
 
+    static class TestFileQueueItem implements FileQueueItem {
 
+        Integer id;
+        Boolean requeue;
 
-     /* Implement File Queue */
+        public TestFileQueueItem(Integer id) {
+            this.id = id;
+        }
+
+        public TestFileQueueItem() {
+        }
+
+        ;
+
+        @Override
+        public String toString() {
+            return String.valueOf(id);
+        }
+
+        public Integer getId() {
+            return id;
+        }
+
+    }
 
     static class TestRetryFileQueue extends FileQueue {
 
@@ -151,7 +138,7 @@ public class FileQueueTest {
             try {
                 TestRetryFileQueueItem retryFileQueueItem = (TestRetryFileQueueItem) item;
                 //logger.debug("found item "+ retryFileQueueItem.getId() +" try count "+retryFileQueueItem.getTryCount());
-                if (retryFileQueueItem.getTryCount() == RETRIES -1 ) {
+                if (retryFileQueueItem.getTryCount() == RETRIES - 1) {
                     processedTest2.incrementAndGet();
                     return ProcessResult.PROCESS_SUCCESS;
                 }
@@ -164,14 +151,18 @@ public class FileQueueTest {
     }
 
 
-    /* Implement Queue Item */
+
+     /* Implement File Queue */
 
     static class TestRetryFileQueueItem extends RetryQueueItem {
 
         Integer id;
 
 
-        public TestRetryFileQueueItem() {};
+        public TestRetryFileQueueItem() {
+        }
+
+        ;
 
         private TestRetryFileQueueItem(Integer id) {
             this.id = id;
@@ -182,8 +173,30 @@ public class FileQueueTest {
             return String.valueOf(id);
         }
 
-        public Integer getId() { return id; }
+        public Integer getId() {
+            return id;
+        }
 
+    }
+
+
+    /* Implement Queue Item */
+
+    class TestFileQueue extends FileQueue {
+
+        public TestFileQueue() {
+        }
+
+        @Override
+        public Class getFileQueueItemClass() {
+            return TestFileQueueItem.class;
+        }
+
+        @Override
+        public ProcessResult processFileQueueItem(FileQueueItem item) throws InterruptedException {
+            processedTest1.incrementAndGet();
+            return ProcessResult.PROCESS_SUCCESS;
+        }
     }
 
 

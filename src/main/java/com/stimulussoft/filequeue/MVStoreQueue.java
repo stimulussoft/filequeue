@@ -28,13 +28,11 @@ import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- *
  * Fast queue implementation on top of MVStore. This class is thread-safe.
  *
  * @author Valentin Popov
  * @author Jamie Band
  * Thanks for Martin Grotze for his original work on Persistent Queue
- *
  */
 
 class MVStoreQueue implements Comparable<MVStoreQueue> {
@@ -53,7 +51,7 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
      * @throws IOException thrown when the given queueEnvPath does not exist and cannot be created.
      */
     public MVStoreQueue(final Path queueDir,
-                        final String queueName) throws IOException, FileQueueException {
+                        final String queueName) throws IOException {
         Files.createDirectories(queueDir);
         this.queueDir = queueDir.toAbsolutePath().toString();
         this.queueName = queueName;
@@ -66,7 +64,7 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
      * @param queueName descriptive filequeue name
      * @throws IOException thrown when the given queueEnvPath does not exist and cannot be created.
      */
-    public MVStoreQueue(final String queueName) throws FileQueueException {
+    public MVStoreQueue(final String queueName) throws IOException {
         this.queueDir = "nioMemFS:";
         this.queueName = queueName;
         reopen();
@@ -76,26 +74,15 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
         return Paths.get(queueDir, queueName).toString();
     }
 
-    public synchronized void reopen() throws FileQueueException {
+    public synchronized void reopen() throws IllegalStateException {
         try {
             if (store != null && !store.isClosed()) store.close();
         } catch (Exception ignored) {
         }
-
-        try {
-            store = getOpenStore();
-            mvMap = store.openMap(queueName);
-            if (!mvMap.isEmpty())
-                tailKey.set(mvMap.lastKey());
-        } catch (IllegalStateException e) {
-            // filequeue database is corrupted, lets delete it and start over
-
-            throw new FileQueueException(MessageFormat.format("Queue \"{0}\" database is corrupted", queueDir));
-
-//    		FileUtil.deleteFile(new File(getDBName()));
-//    		store = getOpenStore();
-//            mvMap = store.openMap(queueName);
-        }
+        store = getOpenStore();
+        mvMap = store.openMap(queueName);
+        if (!mvMap.isEmpty())
+            tailKey.set(mvMap.lastKey());
     }
 
     private MVStore getOpenStore() {

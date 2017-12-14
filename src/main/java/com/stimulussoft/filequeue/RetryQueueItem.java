@@ -26,7 +26,6 @@ import java.util.Date;
  *
  * @author Valentin Popov
  * @author Jamie Band
- *
  */
 
 public abstract class RetryQueueItem implements FileQueueItem {

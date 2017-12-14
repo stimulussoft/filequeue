@@ -19,7 +19,8 @@ package com.stimulussoft.filequeue;
  * Consumer
  *
  * @author Jamie Band (Stimulus Software)
- * @author Valentin Popov (Stimulus Software) */
+ * @author Valentin Popov (Stimulus Software)
+ */
 
 public interface Consumer<T> {
 

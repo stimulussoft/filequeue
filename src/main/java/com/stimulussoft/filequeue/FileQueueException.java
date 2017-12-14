@@ -15,8 +15,6 @@ package com.stimulussoft.filequeue;
 
 import org.slf4j.Logger;
 
-import java.io.Serializable;
-
 /**
  * General file queue exception
  *
@@ -24,7 +22,7 @@ import java.io.Serializable;
  * @author Jamie Band (Stimulus Software)
  */
 
-public class FileQueueException extends Exception  {
+public class FileQueueException extends Exception {
 
 
     public FileQueueException(String message, Logger logger) {

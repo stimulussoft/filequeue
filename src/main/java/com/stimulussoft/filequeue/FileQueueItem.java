@@ -25,8 +25,7 @@ package com.stimulussoft.filequeue;
 import java.io.Serializable;
 
 /**
- *  Rather implement the RetryQueueItem
- *
+ * Rather implement the RetryQueueItem
  */
 
 public interface FileQueueItem extends Serializable {
