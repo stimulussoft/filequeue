@@ -8,9 +8,9 @@ FileQueue also offers basic retry logic. It can be configured to redeliver items
 
 # Usage
 
-The steps for integration file are as follows:
+The steps for integration are as follows:
 
-  1) Include maven POM or clone & compile the git repo
+  1. Include maven POM or clone & compile the git repo
 
     <dependency>
         <groupId>com.stimulussoft</groupId>
@@ -19,13 +19,13 @@ The steps for integration file are as follows:
         <scope>test</scope>
     </dependency>
 
-  2) Implement FileQueueItem or extend RetryQueueItem (for retry support)
-  3) Extend FileQueue
-   a) implement getFileQueueClass to return class created in step 1) above
-   b) implement processFileQueueItem(FileQueueItem item) to perform actual processing work
-  4) Call init(..) to initialize the queue
-  5) Call startQueue() to start the queue
-  6) Call stopQueue() to stop the queue processing
+  2. Implement FileQueueItem or extend RetryQueueItem (for retry support)
+  3. Extend FileQueue
+    1. implement getFileQueueClass to return class created in step 1) above
+    2. implement processFileQueueItem(FileQueueItem item) to perform actual processing work
+  4. Call init(..) to initialize the queue
+  5. Call startQueue() to start the queue
+  6. Call stopQueue() to stop the queue processing
 
 Here's an example snippet of code showing the creation of the queue, a client sending pushing some messages and the consumption of the messages.
 

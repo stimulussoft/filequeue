@@ -4,7 +4,7 @@
     <groupId>com.stimulussoft</groupId>
     <artifactId>filequeue</artifactId>
     <name>file queue project</name>
-    <version>1.0</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
     <description>Light weight, high performance, simple, reliable and persistent queue</description>
     <url>https://github.com/stimulussoft/filequeue</url>
@@ -17,6 +17,10 @@
     <prerequisites>
         <maven>2.0.9</maven>
     </prerequisites>
+      <properties>
+      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    </properties>
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
@@ -117,7 +121,7 @@
                 <configuration>
                     <serverId>ossrh</serverId>
                     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
         </plugins>

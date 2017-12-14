@@ -73,7 +73,6 @@ class QueueProcessor<T> {
      * @param type filequeueitem type
      * @param maxTries maximum number of retries
      * @param retryDelaySecs retry delays in secs
-     * @throws FileQueueException if the queue item could not be written or serialized
      * @throws IllegalStateException if the queue is not running
      * @throws IllegalArgumentException if the type cannot be serialized by jackson
      * @throws IOException if the item could not be serialized
@@ -117,8 +116,7 @@ class QueueProcessor<T> {
      * Submit item for instant processing with embedded pool. If item can't be processed instant
      * it will be queued on filesystem and processed after.
      *
-     * @param item
-     * @throws FileQueueException if the queue item could not be written or serialized
+     * @param item queue item
      * @throws IllegalStateException if the queue is not running
      * @throws IOException if the item could not be serialized
      */

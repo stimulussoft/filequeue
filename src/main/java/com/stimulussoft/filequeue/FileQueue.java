@@ -162,7 +162,6 @@ public abstract class FileQueue {
     /**
      * Start the queue engine
      *
-     * @throws FileQueueException if processing was interrupted due to shutdown
      * @throws IOException        if error reading the db
      */
 
@@ -187,7 +186,7 @@ public abstract class FileQueue {
         assert queuePath != null;
         assert queueName != null;
         Files.createDirectories(queuePath);
-        transferQueue = new QueueProcessor<>(queuePath, queueName, getFileQueueItemClass(), maxTries,
+        transferQueue = new QueueProcessor<FileQueueItem>(queuePath, queueName, getFileQueueItemClass(), maxTries,
                 tryDelaySecs, fileQueueConsumer);
     }
 
@@ -336,7 +335,6 @@ public abstract class FileQueue {
      * @param block           whether to block if filequeue is full or throw an exception
      * @param acquireWait     time to wait before checking if shutdown has occurred
      * @param acquireWaitUnit time unit for acquireWait above wait
-     * @throws FileQueueException   thrown if general exception occurred
      * @throws InterruptedException thrown if waiting was interrupted due to shutdown
      * @throws IOException thrown if there is not enough free space or the queue is full
      */
