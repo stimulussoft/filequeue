@@ -60,6 +60,7 @@ class QueueProcessor<T> {
     private final MVStoreQueue mvStoreQueue;
     private final Class<T> type;
     private final Consumer<T> consumer;
+    private final Expiration<T> expiration;
     private final Phaser restorePolled = new Phaser();
     private volatile boolean doRun = true;
     private int maxTries = 0;
@@ -73,14 +74,15 @@ class QueueProcessor<T> {
      * @param type filequeueitem type
      * @param maxTries maximum number of retries
      * @param retryDelaySecs retry delays in secs
+     * @param consumer queue consumer
+     * @param expiration notification for item expiry
      * @throws IllegalStateException if the queue is not running
      * @throws IllegalArgumentException if the type cannot be serialized by jackson
      * @throws IOException if the item could not be serialized
      */
 
-    
     public QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
-                          int retryDelaySecs, Consumer<T> consumer) throws IOException, IllegalStateException, IllegalArgumentException {
+                          int retryDelaySecs, Consumer<T> consumer, Expiration<T> expiration) throws IOException, IllegalStateException, IllegalArgumentException {
         objectMapper = createObjectMapper();
         if (!objectMapper.canSerialize(type)) {
             throw new IllegalArgumentException("The given type cannot be serialized by jackson " +
@@ -88,6 +90,7 @@ class QueueProcessor<T> {
         }
         mvStoreQueue = new MVStoreQueue(queuePath, queueName);
         this.consumer = consumer;
+        this.expiration = expiration;
         this.type = type;
         this.maxTries = maxTries;
         this.retryDelaySecs = retryDelaySecs;
@@ -95,10 +98,28 @@ class QueueProcessor<T> {
     }
 
     /**
-     * @param earlierDate
-     * @param laterDate
-     * @return Math.abs between 2 dates or 0 if any of param are null.
+     * Create a new QueueProcessor
+     *
+     * @param queuePath path to queue database
+     * @param queueName friendly name for the queue
+     * @param type filequeueitem type
+     * @param maxTries maximum number of retries
+     * @param retryDelaySecs retry delays in secs
+     * @param consumer queue consumer
+     * @throws IllegalStateException if the queue is not running
+     * @throws IllegalArgumentException if the type cannot be serialized by jackson
+     * @throws IOException if the item could not be serialized
      */
+    public QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
+                          int retryDelaySecs, Consumer<T> consumer) throws IOException, IllegalStateException, IllegalArgumentException {
+
+        this(queuePath, queueName, type, maxTries, retryDelaySecs, consumer, null);
+    }
+        /**
+         * @param earlierDate
+         * @param laterDate
+         * @return Math.abs between 2 dates or 0 if any of param are null.
+         */
     private static int secondDiff(Date earlierDate, Date laterDate) {
         if (earlierDate == null || laterDate == null) return 0;
         return (int) (Math.abs((laterDate.getTime() - earlierDate.getTime()) / SECOND_MILLIS));
@@ -126,7 +147,7 @@ class QueueProcessor<T> {
             throw new IllegalStateException("file queue is not running");
         try {
             restorePolled.register();
-            executorService.execute(new ProcessItem<>(consumer, item, this));
+            executorService.execute(new ProcessItem<T>(consumer, expiration, item, this));
         } catch (RejectedExecutionException | CancellationException cancel) {
             mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
         } finally {
@@ -220,11 +241,13 @@ class QueueProcessor<T> {
     private class ProcessItem<T> implements Runnable {
 
         private final Consumer<T> consumer;
+        private final Expiration<T> expiration;
         private final T item;
         private final QueueProcessor<T> processingQueue;
 
-        public ProcessItem(Consumer<T> consumer, T item, QueueProcessor<T> processingQueue) {
+        public ProcessItem(Consumer<T> consumer, Expiration<T> expiration, T item, QueueProcessor<T> processingQueue) {
             this.consumer = consumer;
+            this.expiration = expiration;
             this.item = item;
             this.processingQueue = processingQueue;
         }
@@ -232,13 +255,17 @@ class QueueProcessor<T> {
         @Override
         public void run() {
             try {
-                if (!consumer.consume(item))
+                if (!consumer.consume(item)) {
                     if (processingQueue.isNeedRetry(item)) {
                         if (processingQueue.isTimeToRetry(item))
                             processingQueue.retry(item);
                         else
                             mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
+                    } else {
+                        if (expiration!=null)
+                            expiration.expire(item);
                     }
+                }
             } catch (InterruptedException e) {
                 try {
                     mvStoreQueue.push(objectMapper.writeValueAsBytes(item));

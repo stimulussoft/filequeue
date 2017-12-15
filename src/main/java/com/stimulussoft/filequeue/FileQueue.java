@@ -77,6 +77,10 @@ public abstract class FileQueue {
         }
     };
 
+    final Expiration<FileQueueItem> fileQueueExpiration = item -> {
+        expiredItem(item);
+    };
+
     /**
      * Create @{@link FileQueue}.
      * This method do not initialize the queue. Call init(..) to initialize the queue.
@@ -142,6 +146,9 @@ public abstract class FileQueue {
     public abstract ProcessResult processFileQueueItem(FileQueueItem item) throws InterruptedException;
 
 
+    public abstract void expiredItem(FileQueueItem item);
+
+
     /* Result of filequeue work */
 
     /**
@@ -187,7 +194,7 @@ public abstract class FileQueue {
         assert queueName != null;
         Files.createDirectories(queuePath);
         transferQueue = new QueueProcessor<FileQueueItem>(queuePath, queueName, getFileQueueItemClass(), maxTries,
-                tryDelaySecs, fileQueueConsumer);
+                tryDelaySecs, fileQueueConsumer, fileQueueExpiration);
     }
 
     /**
@@ -234,7 +241,7 @@ public abstract class FileQueue {
      * @throws IOException if the item could not be serialized
      */
 
-    public void queueItem(final FileQueueItem fileQueueItem) throws IOException {
+    public void queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException {
 
         assert fileQueueItem != null;
         assert isStarted.get();
@@ -248,7 +255,7 @@ public abstract class FileQueue {
             // first we check whether at least 50 MB available space, if so, we try to reopen filequeue and push item again
             // if failed, we rethrow nullpointerexception
         } catch (NullPointerException npe) {
-            if (transferQueue.getQueueBaseDir().getUsableSpace() > 50 * 1024 * 1024) {
+            if (transferQueue.getQueueBaseDir().getUsableSpace() > 50L * 1024L * 1024L) {
                 try {
                     transferQueue.reopen();
                     transferQueue.submit(fileQueueItem);

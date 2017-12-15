@@ -2,12 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2c0f753e-c31b-43a4-b55d-4153d9ab5ca9" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueueException.java" afterPath="" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/Expiration.java" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/README.markdown" afterPath="$PROJECT_DIR$/README.markdown" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pom.xml" afterPath="$PROJECT_DIR$/pom.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java" afterPath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java" afterPath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/FileQueueTest.java" afterPath="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/FileQueueTest.java" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <ignored path="$PROJECT_DIR$/target/" />
@@ -18,12 +17,23 @@
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="DatabaseView">
+    <option name="SHOW_INTERMEDIATE" value="true" />
+    <option name="GROUP_SCHEMA" value="true" />
+    <option name="GROUP_CONTENTS" value="false" />
+    <option name="SORT_POSITIONED" value="false" />
+    <option name="SHOW_TABLE_DETAILS" value="true" />
+    <option name="SHOW_EMPTY_GROUPS" value="false" />
+    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
+    <expand />
+    <select />
+  </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="MVStoreQueue.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/MVStoreQueue.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="292">
+            <state relative-caret-position="512">
               <caret line="152" column="0" lean-forward="false" selection-start-line="152" selection-start-column="0" selection-end-line="152" selection-end-column="0" />
               <folding>
                 <element signature="e#0#4611#0" expanded="true" />
@@ -33,10 +43,30 @@
           </provider>
         </entry>
       </file>
+      <file leaf-file-name="FileQueueTest.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/FileQueueTest.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="291">
+              <caret line="212" column="5" lean-forward="true" selection-start-line="212" selection-start-column="5" selection-end-line="212" selection-end-column="5" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="package-info.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/package-info.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="225">
+              <caret line="15" column="0" lean-forward="false" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="DelayRejectPolicy.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/DelayRejectPolicy.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="307">
+            <state relative-caret-position="527">
               <caret line="74" column="5" lean-forward="false" selection-start-line="74" selection-start-column="5" selection-end-line="74" selection-end-column="5" />
               <folding />
             </state>
@@ -46,11 +76,11 @@
       <file leaf-file-name="RetryQueueItem.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/RetryQueueItem.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="172">
-              <caret line="40" column="0" lean-forward="false" selection-start-line="40" selection-start-column="0" selection-end-line="40" selection-end-column="0" />
+            <state relative-caret-position="285">
+              <caret line="35" column="30" lean-forward="false" selection-start-line="35" selection-start-column="30" selection-end-line="35" selection-end-column="30" />
               <folding>
-                <element signature="e#1170#1171#0" expanded="true" />
                 <element signature="e#1200#1201#0" expanded="true" />
+                <element signature="e#1241#1242#0" expanded="true" />
                 <element signature="e#1276#1277#0" expanded="true" />
               </folding>
             </state>
@@ -60,65 +90,35 @@
       <file leaf-file-name="FileQueue.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="363">
-              <caret line="410" column="42" lean-forward="false" selection-start-line="410" selection-start-column="42" selection-end-line="410" selection-end-column="42" />
+            <state relative-caret-position="125">
+              <caret line="156" column="56" lean-forward="true" selection-start-line="156" selection-start-column="56" selection-end-line="156" selection-end-column="56" />
               <folding>
-                <element signature="e#0#14059#0" expanded="true" />
+                <element signature="e#0#14272#0" expanded="true" />
                 <element signature="imports" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="QueueProcessor.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="Consumer.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/Consumer.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="163">
+              <caret line="24" column="17" lean-forward="false" selection-start-line="24" selection-start-column="17" selection-end-line="24" selection-end-column="17" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="QueueProcessor.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="132">
-              <caret line="50" column="52" lean-forward="false" selection-start-line="50" selection-start-column="46" selection-end-line="50" selection-end-column="52" />
+            <state relative-caret-position="3975">
+              <caret line="273" column="27" lean-forward="true" selection-start-line="273" selection-start-column="27" selection-end-line="273" selection-end-column="27" />
               <folding>
-                <element signature="e#0#10437#0" expanded="true" />
+                <element signature="e#0#11809#0" expanded="true" />
                 <element signature="imports" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ThreadUtil.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/util/ThreadUtil.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="142">
-              <caret line="93" column="0" lean-forward="false" selection-start-line="93" selection-start-column="0" selection-end-line="93" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="QueueProcessorTest.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/QueueProcessorTest.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="421">
-              <caret line="103" column="9" lean-forward="false" selection-start-line="103" selection-start-column="9" selection-end-line="103" selection-end-column="9" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="MVStoreQueueTest.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/MVStoreQueueTest.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="284">
-              <caret line="56" column="0" lean-forward="false" selection-start-line="56" selection-start-column="0" selection-end-line="56" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="README.markdown" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/README.markdown">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="390">
-              <caret line="26" column="23" lean-forward="true" selection-start-line="26" selection-start-column="23" selection-end-line="26" selection-end-column="23" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -126,8 +126,8 @@
       <file leaf-file-name="FileQueueItem.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueueItem.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="90">
-              <caret line="26" column="3" lean-forward="false" selection-start-line="26" selection-start-column="3" selection-end-line="26" selection-end-column="3" />
+            <state relative-caret-position="210">
+              <caret line="34" column="1" lean-forward="false" selection-start-line="34" selection-start-column="1" selection-end-line="34" selection-end-column="1" />
               <folding />
             </state>
           </provider>
@@ -138,43 +138,43 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Class" />
         <option value="HTML File" />
+        <option value="Class" />
       </list>
     </option>
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>SN</find>
-      <find>logger</find>
-      <find>logger.debug</find>
-      <find>MIN_FREE_SPACE_MB</find>
-      <find>push</find>
-      <find>jamieb22</find>
-      <find>queueItem(</find>
-      <find>not start</find>
-      <find>assert QueueP</find>
-      <find>queuePa</find>
-      <find>isValid</find>
-      <find>init(</find>
-      <find>isV</find>
-      <find>asset</find>
-      <find>CheckOu</find>
-      <find>inti</find>
-      <find>DELAY</find>
-      <find>minFreeSpace</find>
-      <find>ready(</find>
-      <find>throw new I</find>
-      <find>queueROOT</find>
-      <find>throw new</find>
-      <find>shutdownHook</find>
-      <find>stopQueue</find>
-      <find>1.</find>
-      <find>FileQueueException</find>
-      <find>= new</find>
-      <find>List</find>
       <find>=</find>
       <find>DelayReject</find>
+      <find>teps</find>
+      <find>= new</find>
+      <find>isTimeTr</find>
+      <find>queueItem</find>
+      <find>queueItem(</find>
+      <find>retry</find>
+      <find>pause</find>
+      <find>abstract</find>
+      <find>IllegalA</find>
+      <find>isNeedRetry</find>
+      <find>FileQueue</find>
+      <find>process</find>
+      <find>processFileQueueItem</find>
+      <find>fileQueueConsumer</find>
+      <find>consume</find>
+      <find>Retry</find>
+      <find>Retry(</find>
+      <find>.consume(</find>
+      <find>Consume</find>
+      <find>Consumer</find>
+      <find>Expiration</find>
+      <find>expiredI</find>
+      <find>expired</find>
+      <find>fileQueueCon</find>
+      <find>expire</find>
+      <find>asset</find>
+      <find>there sho</find>
+      <find>expire()</find>
     </findStrings>
     <replaceStrings>
       <replace>FileQueueItem</replace>
@@ -220,20 +220,22 @@
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/util/AdjustableSemaphore.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/DBProcessingQueue.java" />
         <option value="$PROJECT_DIR$/pom.xml" />
-        <option value="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/FileQueueTest.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/DelayRejectPolicy.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/package-info.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueueException.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueueItem.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/RetryQueueItem.java" />
-        <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/Consumer.java" />
         <option value="$PROJECT_DIR$/src/main/java/overview.html" />
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/MVStoreQueue.java" />
         <option value="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/MVStoreQueueTest.java" />
         <option value="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/QueueProcessorTest.java" />
-        <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java" />
-        <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java" />
         <option value="$PROJECT_DIR$/README.markdown" />
+        <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/ProcessorCallback.java" />
+        <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/Consumer.java" />
+        <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/Expiration.java" />
+        <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java" />
+        <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java" />
+        <option value="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/FileQueueTest.java" />
       </list>
     </option>
   </component>
@@ -251,7 +253,7 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="60" />
+    <option name="x" value="29" />
     <option name="y" value="23" />
     <option name="width" value="1440" />
     <option name="height" value="829" />
@@ -335,6 +337,46 @@
               <item name="com" type="462c0819:PsiDirectoryNode" />
               <item name="stimulussoft" type="462c0819:PsiDirectoryNode" />
               <item name="util" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="filequeue" type="b2602c69:ProjectViewProjectNode" />
+              <item name="filequeue" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="test" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="filequeue" type="b2602c69:ProjectViewProjectNode" />
+              <item name="filequeue" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="test" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="filequeue" type="b2602c69:ProjectViewProjectNode" />
+              <item name="filequeue" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="test" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+              <item name="com" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="filequeue" type="b2602c69:ProjectViewProjectNode" />
+              <item name="filequeue" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="test" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+              <item name="com" type="462c0819:PsiDirectoryNode" />
+              <item name="stimulussoft" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="filequeue" type="b2602c69:ProjectViewProjectNode" />
+              <item name="filequeue" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="test" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+              <item name="com" type="462c0819:PsiDirectoryNode" />
+              <item name="stimulussoft" type="462c0819:PsiDirectoryNode" />
+              <item name="filequeue" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="filequeue" type="b2602c69:ProjectViewProjectNode" />
@@ -502,7 +544,7 @@
       <option name="presentableId" value="Default" />
       <updated>1513150307265</updated>
       <workItem from="1513150310446" duration="12743000" />
-      <workItem from="1513167703865" duration="45896000" />
+      <workItem from="1513167703865" duration="53703000" />
     </task>
     <task id="LOCAL-00001" summary="radical rewrite">
       <created>1513205194113</created>
@@ -609,22 +651,17 @@
       <option name="project" value="LOCAL" />
       <updated>1513264912176</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="fix minor typo">
+      <created>1513266995367</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1513266995367</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TestHistory">
-    <history-entry file="FileQueueTest - 2017.12.14 at 08h 20m 16s.xml">
-      <configuration name="FileQueueTest" configurationId="JUnit" />
-    </history-entry>
-    <history-entry file="FileQueueTest - 2017.12.14 at 09h 19m 15s.xml">
-      <configuration name="FileQueueTest" configurationId="JUnit" />
-    </history-entry>
-    <history-entry file="FileQueueTest - 2017.12.14 at 16h 36m 02s.xml">
-      <configuration name="FileQueueTest" configurationId="JUnit" />
-    </history-entry>
-    <history-entry file="FileQueueTest - 2017.12.14 at 16h 41m 12s.xml">
-      <configuration name="FileQueueTest" configurationId="JUnit" />
-    </history-entry>
     <history-entry file="FileQueueTest - 2017.12.14 at 16h 43m 45s.xml">
       <configuration name="FileQueueTest" configurationId="JUnit" />
     </history-entry>
@@ -643,9 +680,21 @@
     <history-entry file="FileQueueTest - 2017.12.14 at 17h 30m 04s.xml">
       <configuration name="FileQueueTest" configurationId="JUnit" />
     </history-entry>
+    <history-entry file="FileQueueTest - 2017.12.15 at 14h 55m 01s.xml">
+      <configuration name="FileQueueTest" configurationId="JUnit" />
+    </history-entry>
+    <history-entry file="FileQueueTest - 2017.12.15 at 14h 56m 51s.xml">
+      <configuration name="FileQueueTest" configurationId="JUnit" />
+    </history-entry>
+    <history-entry file="FileQueueTest - 2017.12.15 at 15h 01m 05s.xml">
+      <configuration name="FileQueueTest" configurationId="JUnit" />
+    </history-entry>
+    <history-entry file="FileQueueTest - 2017.12.15 at 15h 01m 37s.xml">
+      <configuration name="FileQueueTest" configurationId="JUnit" />
+    </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="58639000" />
+    <option name="totallyTimeSpent" value="66446000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -657,7 +706,7 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="60" y="23" width="1440" height="829" extended-state="0" />
+    <frame x="29" y="23" width="1440" height="829" extended-state="0" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32911393" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -673,16 +722,16 @@
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32911393" sideWeight="0.49713877" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24964234" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1981402" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Statistic" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32911393" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3297568" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32911393" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Theme Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32911393" sideWeight="0.46566522" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.30801687" sideWeight="0.46566522" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -741,26 +790,27 @@
     <MESSAGE value="added ability to specify disk space check wait interval" />
     <MESSAGE value="fixed exception handling" />
     <MESSAGE value="tidy" />
-    <option name="LAST_COMMIT_MESSAGE" value="tidy" />
+    <MESSAGE value="fix minor typo" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix minor typo" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java</url>
-          <line>250</line>
+          <line>277</line>
           <properties />
           <option name="timeStamp" value="106" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java</url>
-          <line>243</line>
+          <line>270</line>
           <properties />
           <option name="timeStamp" value="107" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java</url>
-          <line>280</line>
+          <line>307</line>
           <properties />
           <option name="timeStamp" value="108" />
         </line-breakpoint>
@@ -795,7 +845,7 @@
         <state relative-caret-position="930">
           <caret line="62" column="41" lean-forward="false" selection-start-line="62" selection-start-column="41" selection-end-line="62" selection-end-column="41" />
           <folding>
-            <element signature="e#0#14059#0" expanded="true" />
+            <element signature="e#0#14272#0" expanded="true" />
             <element signature="imports" expanded="true" />
           </folding>
         </state>
@@ -806,7 +856,7 @@
         <state relative-caret-position="1410">
           <caret line="125" column="33" lean-forward="false" selection-start-line="125" selection-start-column="33" selection-end-line="125" selection-end-column="33" />
           <folding>
-            <element signature="e#0#10437#0" expanded="true" />
+            <element signature="e#0#11809#0" expanded="true" />
             <element signature="imports" expanded="true" />
           </folding>
         </state>
@@ -857,9 +907,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1995">
           <caret line="133" column="23" lean-forward="false" selection-start-line="133" selection-start-column="23" selection-end-line="133" selection-end-column="23" />
-          <folding>
-            <element signature="imports" expanded="false" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -920,36 +968,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/util/AdjustableSemaphore.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="285">
-          <caret line="33" column="2" lean-forward="false" selection-start-line="33" selection-start-column="2" selection-end-line="33" selection-end-column="2" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pom.xml">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-254">
           <caret line="58" column="31" lean-forward="false" selection-start-line="58" selection-start-column="31" selection-end-line="58" selection-end-column="31" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/FileQueueTest.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
-          <caret line="15" column="3" lean-forward="false" selection-start-line="15" selection-start-column="3" selection-end-line="15" selection-end-column="3" />
-          <folding>
-            <element signature="imports" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/package-info.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="225">
-          <caret line="15" column="0" lean-forward="false" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
           <folding />
         </state>
       </provider>
@@ -970,26 +992,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/Consumer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="17" column="3" lean-forward="false" selection-start-line="17" selection-start-column="3" selection-end-line="17" selection-end-column="3" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueueException.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="255">
           <caret line="17" column="3" lean-forward="false" selection-start-line="17" selection-start-column="3" selection-end-line="17" selection-end-column="3" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueueItem.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="90">
-          <caret line="26" column="3" lean-forward="false" selection-start-line="26" selection-start-column="3" selection-end-line="26" selection-end-column="3" />
           <folding />
         </state>
       </provider>
@@ -1010,29 +1016,57 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/RetryQueueItem.java">
+    <entry file="file://$PROJECT_DIR$/README.markdown">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="172">
-          <caret line="40" column="0" lean-forward="false" selection-start-line="40" selection-start-column="0" selection-end-line="40" selection-end-column="0" />
-          <folding>
-            <element signature="e#1170#1171#0" expanded="true" />
-            <element signature="e#1200#1201#0" expanded="true" />
-            <element signature="e#1276#1277#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="390">
+          <caret line="26" column="23" lean-forward="true" selection-start-line="26" selection-start-column="23" selection-end-line="26" selection-end-column="23" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/util/AdjustableSemaphore.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="90">
+          <caret line="18" column="13" lean-forward="false" selection-start-line="18" selection-start-column="13" selection-end-line="18" selection-end-column="13" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/util/ThreadUtil.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="142">
+        <state relative-caret-position="-448">
           <caret line="93" column="0" lean-forward="false" selection-start-line="93" selection-start-column="0" selection-end-line="93" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/package-info.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="15" column="0" lean-forward="false" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/DelayRejectPolicy.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="527">
+          <caret line="74" column="5" lean-forward="false" selection-start-line="74" selection-start-column="5" selection-end-line="74" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/ProcessorCallback.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="5" column="23" lean-forward="false" selection-start-line="5" selection-start-column="23" selection-end-line="5" selection-end-column="23" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/MVStoreQueue.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="292">
+        <state relative-caret-position="512">
           <caret line="152" column="0" lean-forward="false" selection-start-line="152" selection-start-column="0" selection-end-line="152" selection-end-column="0" />
           <folding>
             <element signature="e#0#4611#0" expanded="true" />
@@ -1041,41 +1075,69 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/DelayRejectPolicy.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueueItem.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="307">
-          <caret line="74" column="5" lean-forward="false" selection-start-line="74" selection-start-column="5" selection-end-line="74" selection-end-column="5" />
+        <state relative-caret-position="210">
+          <caret line="34" column="1" lean-forward="false" selection-start-line="34" selection-start-column="1" selection-end-line="34" selection-end-column="1" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/RetryQueueItem.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="285">
+          <caret line="35" column="30" lean-forward="false" selection-start-line="35" selection-start-column="30" selection-end-line="35" selection-end-column="30" />
+          <folding>
+            <element signature="e#1200#1201#0" expanded="true" />
+            <element signature="e#1241#1242#0" expanded="true" />
+            <element signature="e#1276#1277#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/Consumer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="163">
+          <caret line="24" column="17" lean-forward="false" selection-start-line="24" selection-start-column="17" selection-end-line="24" selection-end-column="17" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="125">
+          <caret line="156" column="56" lean-forward="true" selection-start-line="156" selection-start-column="56" selection-end-line="156" selection-end-column="56" />
+          <folding>
+            <element signature="e#0#14272#0" expanded="true" />
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/FileQueueTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="291">
+          <caret line="212" column="5" lean-forward="true" selection-start-line="212" selection-start-column="5" selection-end-line="212" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/Expiration.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="252">
+          <caret line="24" column="17" lean-forward="false" selection-start-line="24" selection-start-column="17" selection-end-line="24" selection-end-column="17" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="132">
-          <caret line="50" column="52" lean-forward="false" selection-start-line="50" selection-start-column="46" selection-end-line="50" selection-end-column="52" />
+        <state relative-caret-position="3975">
+          <caret line="273" column="27" lean-forward="true" selection-start-line="273" selection-start-column="27" selection-end-line="273" selection-end-column="27" />
           <folding>
-            <element signature="e#0#10437#0" expanded="true" />
+            <element signature="e#0#11809#0" expanded="true" />
             <element signature="imports" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="363">
-          <caret line="410" column="42" lean-forward="false" selection-start-line="410" selection-start-column="42" selection-end-line="410" selection-end-column="42" />
-          <folding>
-            <element signature="e#0#14059#0" expanded="true" />
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/README.markdown">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="390">
-          <caret line="26" column="23" lean-forward="true" selection-start-line="26" selection-start-column="23" selection-end-line="26" selection-end-column="23" />
-          <folding />
         </state>
       </provider>
     </entry>

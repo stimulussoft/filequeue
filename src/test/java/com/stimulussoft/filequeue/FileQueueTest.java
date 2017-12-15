@@ -94,6 +94,7 @@ public class FileQueueTest {
             Thread.sleep(1000);
         }
         System.out.println("processed: " + processed.get() + " produced: " + produced.get());
+
         Assert.assertTrue(processed.get() == produced.get());
     }
 
@@ -148,6 +149,12 @@ public class FileQueueTest {
                 return ProcessResult.PROCESS_FAIL_NOQUEUE;
             }
         }
+
+        @Override
+        public void expiredItem(FileQueueItem item) {
+            Assert.fail("there should be no expired items");
+            throw new RuntimeException();
+        }
     }
 
 
@@ -196,6 +203,12 @@ public class FileQueueTest {
         public ProcessResult processFileQueueItem(FileQueueItem item) throws InterruptedException {
             processedTest1.incrementAndGet();
             return ProcessResult.PROCESS_SUCCESS;
+        }
+
+        @Override
+        public void expiredItem(FileQueueItem item) {
+            Assert.fail("there should be no expired items");
+            throw new RuntimeException();
         }
     }
 
