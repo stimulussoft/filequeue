@@ -15,7 +15,7 @@ The steps for integration are as follows:
     <dependency>
         <groupId>com.stimulussoft</groupId>
         <artifactId>filequeue</artifactId>
-        <version>1.0.2</version>
+        <version>1.0.3</version>
         <scope>test</scope>
     </dependency>
 
