@@ -17,10 +17,10 @@ package com.stimulussoft.filequeue;
 
 
 import com.google.common.base.Preconditions;
-import com.sun.istack.internal.NotNull;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -149,7 +149,7 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
     }
 
     @Override
-    public int compareTo(@NotNull MVStoreQueue o) {
+    public int compareTo(@Nonnull MVStoreQueue o) {
         int result = (int) (this.size() - o.size());
         return Integer.compare(result, 0);
     }
