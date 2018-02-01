@@ -252,9 +252,9 @@ public abstract class FileQueue {
             throw new IllegalArgumentException("since max tries > 0, item must be subclasses retryqueueitem");
         }
 
-
         try {
-            transferQueue.submit(fileQueueItem);
+            if (fileQueueItem.call())
+                transferQueue.submit(fileQueueItem);
             // mvstore throws a null ptr exception when out of disk space
             // first we check whether at least 50 MB available space, if so, we try to reopen filequeue and push item again
             // if failed, we rethrow nullpointerexception
@@ -271,6 +271,8 @@ public abstract class FileQueue {
                 permits.release();
                 throw npe;
             }
+        } catch (Exception e) {
+            throw new IOException(e);
         }
     }
 
@@ -351,8 +353,6 @@ public abstract class FileQueue {
      * @throws InterruptedException thrown if waiting was interrupted due to shutdown
      * @throws IOException thrown if there is not enough free space or the queue is full
      */
-
-
     private void ready(boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
 
         assert acquireWaitUnit != null;

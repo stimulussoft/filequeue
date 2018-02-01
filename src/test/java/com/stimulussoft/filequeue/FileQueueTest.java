@@ -110,8 +110,6 @@ public class FileQueueTest {
         public TestFileQueueItem() {
         }
 
-        ;
-
         @Override
         public String toString() {
             return String.valueOf(id);
@@ -121,6 +119,10 @@ public class FileQueueTest {
             return id;
         }
 
+        @Override
+        public Boolean call() throws Exception {
+            return true;
+        }
     }
 
     static class TestRetryFileQueue extends FileQueue {
@@ -169,8 +171,6 @@ public class FileQueueTest {
         public TestRetryFileQueueItem() {
         }
 
-        ;
-
         private TestRetryFileQueueItem(Integer id) {
             this.id = id;
         }
@@ -184,6 +184,10 @@ public class FileQueueTest {
             return id;
         }
 
+        @Override
+        public Boolean call() throws Exception {
+            return true;
+        }
     }
 
 
