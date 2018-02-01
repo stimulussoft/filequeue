@@ -255,6 +255,10 @@ public abstract class FileQueue {
         try {
             if (fileQueueItem.call())
                 transferQueue.submit(fileQueueItem);
+            else {
+                permits.release();
+                throw new IOException("failed retrieve delayed item {" + fileQueueItem.toString() + "}");
+            }
             // mvstore throws a null ptr exception when out of disk space
             // first we check whether at least 50 MB available space, if so, we try to reopen filequeue and push item again
             // if failed, we rethrow nullpointerexception
