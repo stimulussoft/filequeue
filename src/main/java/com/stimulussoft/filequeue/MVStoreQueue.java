@@ -17,6 +17,7 @@ package com.stimulussoft.filequeue;
 
 
 import com.google.common.base.Preconditions;
+import com.sun.istack.internal.NotNull;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 
@@ -24,7 +25,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.MessageFormat;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -41,7 +41,7 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
     private MVMap<Integer, byte[]> mvMap;
     private MVStore store;
     private String queueDir;
-    private AtomicInteger tailKey = new AtomicInteger(0);
+    private final AtomicInteger tailKey = new AtomicInteger(0);
 
     /**
      * Creates instance of persistent filequeue.
@@ -50,7 +50,7 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
      * @param queueName descriptive filequeue name
      * @throws IOException thrown when the given queueEnvPath does not exist and cannot be created.
      */
-    public MVStoreQueue(final Path queueDir,
+    MVStoreQueue(final Path queueDir,
                         final String queueName) throws IOException {
         Files.createDirectories(queueDir);
         this.queueDir = queueDir.toAbsolutePath().toString();
@@ -64,7 +64,7 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
      * @param queueName descriptive filequeue name
      * @throws IOException thrown when the given queueEnvPath does not exist and cannot be created.
      */
-    public MVStoreQueue(final String queueName) throws IOException {
+    MVStoreQueue(final String queueName) throws IOException {
         this.queueDir = "nioMemFS:";
         this.queueName = queueName;
         reopen();
@@ -149,8 +149,28 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
     }
 
     @Override
-    public int compareTo(MVStoreQueue o) {
+    public int compareTo(@NotNull MVStoreQueue o) {
         int result = (int) (this.size() - o.size());
         return Integer.compare(result, 0);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof MVStoreQueue)) return false;
+
+        MVStoreQueue that = (MVStoreQueue) o;
+
+        if (!queueName.equals(that.queueName)) return false;
+        if (!store.equals(that.store)) return false;
+        return getQueueDir().equals(that.getQueueDir());
+    }
+
+    @Override
+    public int hashCode() {
+        int result = queueName.hashCode();
+        result = 31 * result + store.hashCode();
+        result = 31 * result + getQueueDir().hashCode();
+        return result;
     }
 }

@@ -18,7 +18,6 @@ import com.stimulussoft.util.AdjustableSemaphore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,20 +47,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class FileQueue {
 
-    protected Logger logger = LoggerFactory.getLogger("com.stimulussoft.archiva");
-    protected String queueName;
-    protected ShutdownHook shutdownHook;
-    protected AtomicBoolean isStarted = new AtomicBoolean();
-    protected Path queuePath;
-    protected int maxTries = 0;
-    protected int tryDelaySecs = 0;
-    protected int maxQueueSize = Integer.MAX_VALUE;
-    protected AdjustableSemaphore permits = new AdjustableSemaphore();
-    protected int minFreeSpaceMb = 20;
-    protected int diskSpaceCheckDelayMsec = 20;
+    private static final long fiftyMegs = 50L * 1024L * 1024L;
+
+    private Logger logger = LoggerFactory.getLogger("com.stimulussoft.archiva");
+    private String queueName;
+    private ShutdownHook shutdownHook;
+    private final AtomicBoolean isStarted = new AtomicBoolean();
+    private Path queuePath;
+    private int maxTries = 0;
+    private int tryDelaySecs = 0;
+    private int maxQueueSize = Integer.MAX_VALUE;
+    private final AdjustableSemaphore permits = new AdjustableSemaphore();
+    private int minFreeSpaceMb = 20;
+    private int diskSpaceCheckDelayMsec = 20;
     private QueueProcessor<FileQueueItem> transferQueue;
 
-    final Consumer<FileQueueItem> fileQueueConsumer = item -> {
+    private final Consumer<FileQueueItem> fileQueueConsumer = item -> {
         try {
             if (!isStarted.get())
                 return false;
@@ -77,9 +78,7 @@ public abstract class FileQueue {
         }
     };
 
-    final Expiration<FileQueueItem> fileQueueExpiration = item -> {
-        expiredItem(item);
-    };
+    private final Expiration<FileQueueItem> fileQueueExpiration = this::expiredItem;
 
     /**
      * Create @{@link FileQueue}.
@@ -169,7 +168,7 @@ public abstract class FileQueue {
     /**
      * Start the queue engine
      *
-     * @throws IOException        if error reading the db
+     * @throws IOException if error reading the db
      */
 
     public synchronized void startQueue() throws IOException {
@@ -186,18 +185,6 @@ public abstract class FileQueue {
     }
 
     /**
-     * Initialize the queue
-     */
-
-    private void initQueue() throws IOException {
-        assert queuePath != null;
-        assert queueName != null;
-        Files.createDirectories(queuePath);
-        transferQueue = new QueueProcessor<FileQueueItem>(queuePath, queueName, getFileQueueItemClass(), maxTries,
-                tryDelaySecs, fileQueueConsumer, fileQueueExpiration);
-    }
-
-    /**
      * Stop the queue. Call this method when the queue engine must be shutdown.
      */
 
@@ -211,6 +198,19 @@ public abstract class FileQueue {
             }
         }
     }
+
+    /**
+     * Initialize the queue
+     */
+
+    private void initQueue() throws IOException {
+        assert queuePath != null;
+        assert queueName != null;
+        Files.createDirectories(queuePath);
+        transferQueue = new QueueProcessor<FileQueueItem>(queuePath, queueName, getFileQueueItemClass(), maxTries,
+                tryDelaySecs, fileQueueConsumer, fileQueueExpiration);
+    }
+
 
     /**
      * Queue item for delivery.
@@ -255,7 +255,7 @@ public abstract class FileQueue {
             // first we check whether at least 50 MB available space, if so, we try to reopen filequeue and push item again
             // if failed, we rethrow nullpointerexception
         } catch (NullPointerException npe) {
-            if (transferQueue.getQueueBaseDir().getUsableSpace() > 50L * 1024L * 1024L) {
+            if (Files.getFileStore(transferQueue.getQueueBaseDir()).getUsableSpace() > fiftyMegs) {
                 try {
                     transferQueue.reopen();
                     transferQueue.submit(fileQueueItem);
@@ -332,7 +332,7 @@ public abstract class FileQueue {
         this.tryDelaySecs = tryDelaySecs;
     }
 
-    protected void release() {
+    private void release() {
         permits.release();
     }
 
@@ -347,13 +347,13 @@ public abstract class FileQueue {
      */
 
 
-    public void ready(boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
+    private void ready(boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
 
         assert acquireWaitUnit != null;
         assert acquireWait >= 0;
         assert isStarted.get();
 
-        File queuePathFile = queuePath.toFile();
+        long minFreeSpace = (long) minFreeSpaceMb * 1024L * 1024L;
 
         if (block) {
             boolean acquired = false;
@@ -361,20 +361,22 @@ public abstract class FileQueue {
                 acquired = permits.tryAcquire(acquireWait, acquireWaitUnit);
             }
 
-            long freeSpace = queuePathFile.getUsableSpace();
-            if (freeSpace <= (long)minFreeSpaceMb * 1024L * 1024L)
-                logger.warn("not enough disk space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}. blocking operations until diskspace is freed.");
+            long freeSpace = Files.getFileStore(queuePath).getUsableSpace();
+            if (freeSpace <= minFreeSpace)
+                logger.warn("not enough disk space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}. " +
+                        "blocking operations until diskspace is freed.");
 
-            while (isStarted.get() && freeSpace <= (long)minFreeSpaceMb * 1024L * 1024L) {
-                freeSpace = queuePathFile.getUsableSpace();
+            while (isStarted.get() && freeSpace <= minFreeSpace) {
+                freeSpace = Files.getFileStore(queuePath).getUsableSpace();
                 Thread.sleep(diskSpaceCheckDelayMsec);
             }
+
         } else {
             if (!permits.tryAcquire(acquireWait, acquireWaitUnit))
                 throw new IOException("filequeue " + queuePath + " is full. {maxQueueSize='" + maxQueueSize + "'}");
 
-            long freeSpace = queuePathFile.getUsableSpace();
-            if (freeSpace <= (long)minFreeSpaceMb * 1024L * 1024L)
+            long freeSpace = Files.getFileStore(queuePath).getUsableSpace();
+            if (freeSpace <= minFreeSpace)
                 throw new IOException("not enough free space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}");
         }
     }

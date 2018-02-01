@@ -145,7 +145,7 @@ public class FileQueueTest {
                 }
                 return ProcessResult.PROCESS_FAIL_REQUEUE;
             } catch (Exception e) {
-                logger.error(e.getMessage(), e);
+                e.printStackTrace();
                 return ProcessResult.PROCESS_FAIL_NOQUEUE;
             }
         }

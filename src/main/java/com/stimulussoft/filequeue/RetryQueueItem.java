@@ -30,8 +30,8 @@ import java.util.Date;
 
 public abstract class RetryQueueItem implements FileQueueItem {
 
-    protected int retryCount;
-    protected Date tryDate;
+    private int retryCount;
+    private Date tryDate;
 
     public Date getTryDate() {
         return tryDate;

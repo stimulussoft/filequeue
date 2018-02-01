@@ -22,7 +22,7 @@ package com.stimulussoft.filequeue;
  * @author Valentin Popov (Stimulus Software)
  */
 
-public interface Expiration<T> {
+interface Expiration<T> {
 
     /**
      * Expiration notification

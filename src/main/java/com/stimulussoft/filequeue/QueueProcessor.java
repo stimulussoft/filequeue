@@ -21,10 +21,11 @@ import com.stimulussoft.util.ThreadUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Optional;
 import java.util.concurrent.*;
 
 /**
@@ -48,12 +49,10 @@ class QueueProcessor<T> {
             new DelayRejectPolicy());
     private static final ScheduledExecutorService mvstoreCleanUP = Executors.newSingleThreadScheduledExecutor(
             ThreadUtil.getFlexibleThreadFactory("mvstore-cleanup", false));
-    private static final PollStores pollStores = new PollStores();
 
     static {
         MoreExecutors.addDelayedShutdownHook(executorService, 60L, TimeUnit.SECONDS);
         MoreExecutors.addDelayedShutdownHook(mvstoreCleanUP, 60L, TimeUnit.SECONDS);
-        mvstoreCleanUP.scheduleWithFixedDelay(pollStores, 5, 5, TimeUnit.SECONDS);
     }
 
     private final ObjectMapper objectMapper;
@@ -62,6 +61,7 @@ class QueueProcessor<T> {
     private final Consumer<T> consumer;
     private final Expiration<T> expiration;
     private final Phaser restorePolled = new Phaser();
+    private Optional<ScheduledFuture<?>> cleanupTask = Optional.empty();
     private volatile boolean doRun = true;
     private int maxTries = 0;
     private int retryDelaySecs = 0;
@@ -69,19 +69,19 @@ class QueueProcessor<T> {
     /**
      * Create a new QueueProcessor
      *
-     * @param queuePath path to queue database
-     * @param queueName friendly name for the queue
-     * @param type filequeueitem type
-     * @param maxTries maximum number of retries
+     * @param queuePath      path to queue database
+     * @param queueName      friendly name for the queue
+     * @param type           filequeueitem type
+     * @param maxTries       maximum number of retries
      * @param retryDelaySecs retry delays in secs
-     * @param consumer queue consumer
-     * @param expiration notification for item expiry
-     * @throws IllegalStateException if the queue is not running
+     * @param consumer       queue consumer
+     * @param expiration     notification for item expiry
+     * @throws IllegalStateException    if the queue is not running
      * @throws IllegalArgumentException if the type cannot be serialized by jackson
-     * @throws IOException if the item could not be serialized
+     * @throws IOException              if the item could not be serialized
      */
 
-    public QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
+    QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
                           int retryDelaySecs, Consumer<T> consumer, Expiration<T> expiration) throws IOException, IllegalStateException, IllegalArgumentException {
         objectMapper = createObjectMapper();
         if (!objectMapper.canSerialize(type)) {
@@ -94,39 +94,40 @@ class QueueProcessor<T> {
         this.type = type;
         this.maxTries = maxTries;
         this.retryDelaySecs = retryDelaySecs;
-        pollStores.register(mvStoreQueue, new PollQueue(this));
+        cleanupTask = Optional.of(mvstoreCleanUP.scheduleWithFixedDelay(new MVStoreCleaner(this), 5, 1, TimeUnit.MINUTES));
     }
 
     /**
      * Create a new QueueProcessor
      *
-     * @param queuePath path to queue database
-     * @param queueName friendly name for the queue
-     * @param type filequeueitem type
-     * @param maxTries maximum number of retries
+     * @param queuePath      path to queue database
+     * @param queueName      friendly name for the queue
+     * @param type           filequeueitem type
+     * @param maxTries       maximum number of retries
      * @param retryDelaySecs retry delays in secs
-     * @param consumer queue consumer
-     * @throws IllegalStateException if the queue is not running
+     * @param consumer       queue consumer
+     * @throws IllegalStateException    if the queue is not running
      * @throws IllegalArgumentException if the type cannot be serialized by jackson
-     * @throws IOException if the item could not be serialized
+     * @throws IOException              if the item could not be serialized
      */
-    public QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
+    QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
                           int retryDelaySecs, Consumer<T> consumer) throws IOException, IllegalStateException, IllegalArgumentException {
 
         this(queuePath, queueName, type, maxTries, retryDelaySecs, consumer, null);
     }
-        /**
-         * @param earlierDate
-         * @param laterDate
-         * @return Math.abs between 2 dates or 0 if any of param are null.
-         */
+
+    /**
+     * @param earlierDate
+     * @param laterDate
+     * @return Math.abs between 2 dates or 0 if any of param are null.
+     */
     private static int secondDiff(Date earlierDate, Date laterDate) {
         if (earlierDate == null || laterDate == null) return 0;
         return (int) (Math.abs((laterDate.getTime() - earlierDate.getTime()) / SECOND_MILLIS));
     }
 
-    public File getQueueBaseDir() {
-        return mvStoreQueue.getQueueDir().toFile();
+    public Path getQueueBaseDir() {
+        return mvStoreQueue.getQueueDir();
     }
 
     public void reopen() throws IllegalStateException {
@@ -139,15 +140,15 @@ class QueueProcessor<T> {
      *
      * @param item queue item
      * @throws IllegalStateException if the queue is not running
-     * @throws IOException if the item could not be serialized
+     * @throws IOException           if the item could not be serialized
      */
 
     public void submit(final T item) throws IllegalStateException, IOException {
         if (!doRun)
-            throw new IllegalStateException("file queue is not running");
+            throw new IllegalStateException("file queue {" + getQueueBaseDir() + "} is not running");
         try {
             restorePolled.register();
-            executorService.execute(new ProcessItem<T>(consumer, expiration, item, this));
+            executorService.execute(new ProcessItem<>(consumer, expiration, item, this));
         } catch (RejectedExecutionException | CancellationException cancel) {
             mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
         } finally {
@@ -157,7 +158,7 @@ class QueueProcessor<T> {
 
     public void close() {
         doRun = false;
-        pollStores.unRegister(mvStoreQueue);
+        cleanupTask.ifPresent(cleanupTask -> cleanupTask.cancel(true));
         restorePolled.register();
         restorePolled.arriveAndAwaitAdvance();
         mvStoreQueue.close();
@@ -214,55 +215,31 @@ class QueueProcessor<T> {
         }
     }
 
-    private interface Poll extends Runnable, Comparable<MVStoreQueue> {
-
-    }
-
-    private final static class PollStores implements Runnable {
-
-        private Map<MVStoreQueue, Poll> polls = Collections.synchronizedMap(new HashMap<>());
-
-        public void register(MVStoreQueue mvStoreQueue, Poll poll) {
-            polls.put(mvStoreQueue, poll);
-        }
-
-        public void unRegister(MVStoreQueue poll) {
-            polls.remove(poll);
-        }
-
-        @Override
-        public void run() {
-            for (Poll poll : polls.values()) {
-                poll.run();
-            }
-        }
-    }
-
     private class ProcessItem<T> implements Runnable {
 
         private final Consumer<T> consumer;
         private final Expiration<T> expiration;
         private final T item;
-        private final QueueProcessor<T> processingQueue;
+        private final QueueProcessor<T> queueProcessor;
 
-        public ProcessItem(Consumer<T> consumer, Expiration<T> expiration, T item, QueueProcessor<T> processingQueue) {
+        ProcessItem(Consumer<T> consumer, Expiration<T> expiration, T item, QueueProcessor<T> queueProcessor) {
             this.consumer = consumer;
             this.expiration = expiration;
             this.item = item;
-            this.processingQueue = processingQueue;
+            this.queueProcessor = queueProcessor;
         }
 
         @Override
         public void run() {
             try {
                 if (!consumer.consume(item)) {
-                    if (processingQueue.isNeedRetry(item)) {
-                        if (processingQueue.isTimeToRetry(item))
-                            processingQueue.retry(item);
+                    if (queueProcessor.isNeedRetry(item)) {
+                        if (queueProcessor.isTimeToRetry(item))
+                            queueProcessor.retry(item);
                         else
                             mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
                     } else {
-                        if (expiration!=null)
+                        if (expiration != null)
                             expiration.expire(item);
                     }
                 }
@@ -280,44 +257,43 @@ class QueueProcessor<T> {
         }
     }
 
-
-    private final class PollQueue implements Poll {
+    private final class MVStoreCleaner implements Runnable {
 
         private final QueueProcessor processingQueue;
 
-        public PollQueue(QueueProcessor processingQueue) {
+        MVStoreCleaner(QueueProcessor processingQueue) {
             this.processingQueue = processingQueue;
         }
 
         @Override
         public void run() {
-            if (!mvStoreQueue.isEmpty()) {
-                byte[] toDeserialize;
-                while ((toDeserialize = mvStoreQueue.poll()) != null) {
-                    restorePolled.register();
-                    try {
-                        if (!doRun) {
-                            mvStoreQueue.push(toDeserialize);
-                            break;
-                        }
+            if (doRun && !mvStoreQueue.isEmpty()) {
+                try {
+                    byte[] toDeserialize;
+                    while ((toDeserialize = mvStoreQueue.poll()) != null) {
+                        restorePolled.register();
+                        try {
+                            if (!doRun) {
+                                mvStoreQueue.push(toDeserialize);
+                                break;
+                            }
 
-                        final T item = deserialize(toDeserialize);
-                        if (item == null) continue;
-                        processingQueue.submit(item);
-                    } catch (IOException e) {
-                        logger.error("Failed to process item.", e);
-                        mvStoreQueue.push(toDeserialize);
-                    } finally {
-                        restorePolled.arriveAndDeregister();
+                            final T item = deserialize(toDeserialize);
+                            if (item == null) continue;
+                            processingQueue.submit(item);
+                        } catch (IllegalStateException e) {
+                            logger.error("Failed to process item.", e);
+                            mvStoreQueue.push(toDeserialize);
+                        } finally {
+                            restorePolled.arriveAndDeregister();
+                        }
                     }
+                } catch (IOException io) {
+                    logger.error("Failed to process item.", io);
                 }
             }
         }
 
-        @Override
-        public int compareTo(MVStoreQueue o) {
-            return mvStoreQueue.compareTo(o);
-        }
     }
 
 }
