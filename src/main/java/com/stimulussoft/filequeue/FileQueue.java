@@ -14,6 +14,7 @@
 
 package com.stimulussoft.filequeue;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.stimulussoft.util.AdjustableSemaphore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +50,7 @@ public abstract class FileQueue {
 
     private static final long fiftyMegs = 50L * 1024L * 1024L;
 
-    private Logger logger = LoggerFactory.getLogger("com.stimulussoft.archiva");
+    protected Logger logger = LoggerFactory.getLogger("com.stimulussoft.archiva");
     private String queueName;
     private ShutdownHook shutdownHook;
     private final AtomicBoolean isStarted = new AtomicBoolean();
@@ -74,7 +75,7 @@ public abstract class FileQueue {
                     return true;
             }
         } finally {
-            release();
+            permits.release();
         }
     };
 
@@ -240,14 +241,17 @@ public abstract class FileQueue {
      * @throws IllegalArgumentException if the wrong arguments were supplied
      * @throws IOException if the item could not be serialized
      */
-
-    public void queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException {
+    @VisibleForTesting
+    void queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException {
 
         assert fileQueueItem != null;
         assert isStarted.get();
 
-        if (maxTries > 0 && !(fileQueueItem instanceof RetryQueueItem))
+        if (maxTries > 0 && !(fileQueueItem instanceof RetryQueueItem)) {
+            permits.release();
             throw new IllegalArgumentException("since max tries > 0, item must be subclasses retryqueueitem");
+        }
+
 
         try {
             transferQueue.submit(fileQueueItem);
@@ -260,9 +264,11 @@ public abstract class FileQueue {
                     transferQueue.reopen();
                     transferQueue.submit(fileQueueItem);
                 } catch (Exception e) {
+                    permits.release();
                     throw npe;
                 }
             } else {
+                permits.release();
                 throw npe;
             }
         }
@@ -376,8 +382,11 @@ public abstract class FileQueue {
                 throw new IOException("filequeue " + queuePath + " is full. {maxQueueSize='" + maxQueueSize + "'}");
 
             long freeSpace = Files.getFileStore(queuePath).getUsableSpace();
-            if (freeSpace <= minFreeSpace)
+            if (freeSpace <= minFreeSpace) {
+                permits.release();
                 throw new IOException("not enough free space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}");
+            }
+
         }
     }
 
