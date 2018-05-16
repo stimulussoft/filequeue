@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -37,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 class MVStoreQueue implements Comparable<MVStoreQueue> {
 
+    private static final String NIO_MEM_FS = "nioMemFS:";
     private final String queueName;
     private MVMap<Integer, byte[]> mvMap;
     private MVStore store;
@@ -65,13 +67,15 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
      * @throws IOException thrown when the given queueEnvPath does not exist and cannot be created.
      */
     MVStoreQueue(final String queueName) throws IOException {
-        this.queueDir = "nioMemFS:";
+        this.queueDir = NIO_MEM_FS;
         this.queueName = queueName;
         reopen();
     }
 
     private String getDBName() {
-        return Paths.get(queueDir, queueName).toString();
+        if (Objects.equals(queueDir, NIO_MEM_FS)) {
+            return queueDir + queueName;
+        } else return Paths.get(queueDir, queueName).toString();
     }
 
     public synchronized void reopen() throws IllegalStateException {

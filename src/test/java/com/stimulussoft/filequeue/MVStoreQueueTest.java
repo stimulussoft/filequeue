@@ -19,6 +19,7 @@ package com.stimulussoft.filequeue;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public class MVStoreQueueTest {
         queue.close();
     }
 
-    //	@Test
+    @Test
     public void consistency() throws IOException {
         List<byte[]> added = new ArrayList<>(toGenerate);
 
@@ -79,7 +80,7 @@ public class MVStoreQueueTest {
         assertTrue(consumed.size() == 0);
     }
 
-    //	@Test
+    @Test
     public void concurentConsistency() throws InterruptedException {
         int threadsNumber = 10;
 

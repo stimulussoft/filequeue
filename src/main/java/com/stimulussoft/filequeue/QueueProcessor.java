@@ -43,7 +43,7 @@ class QueueProcessor<T> {
     private final static long SECOND_MILLIS = 1000;
     private static final ExecutorService executorService = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),
-            Runtime.getRuntime().availableProcessors() * 40, 60L, TimeUnit.SECONDS,
+            Runtime.getRuntime().availableProcessors() * 8, 60L, TimeUnit.SECONDS,
             new SynchronousQueue<>(true),
             ThreadUtil.getFlexibleThreadFactory("filequeue-worker", false),
             new DelayRejectPolicy());

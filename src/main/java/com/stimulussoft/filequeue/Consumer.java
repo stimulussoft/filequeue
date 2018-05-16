@@ -27,8 +27,8 @@ public interface Consumer<T> {
     /**
      * Consume the given item.
      *
-     * @param item the item to handle.
-     * @return <code>true</code> if the item was processed successfully and shall be removed from the filequeue.
+     * @param item to handle.
+     * @return {@code true} if the item was processed successfully and shall be removed from the filequeue.
      * @throws InterruptedException if thread was interrupted due to shutdown
      */
     boolean consume(T item) throws InterruptedException;
