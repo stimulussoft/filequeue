@@ -242,7 +242,7 @@ public abstract class FileQueue {
      * @throws IOException if the item could not be serialized
      */
     @VisibleForTesting
-    void queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException {
+    public void queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException {
 
         assert fileQueueItem != null;
         assert isStarted.get();
@@ -253,12 +253,7 @@ public abstract class FileQueue {
         }
 
         try {
-            if (fileQueueItem.call())
-                transferQueue.submit(fileQueueItem);
-            else {
-                permits.release();
-                throw new IOException("failed retrieve delayed item {" + fileQueueItem.toString() + "}");
-            }
+            transferQueue.submit(fileQueueItem);
             // mvstore throws a null ptr exception when out of disk space
             // first we check whether at least 50 MB available space, if so, we try to reopen filequeue and push item again
             // if failed, we rethrow nullpointerexception
@@ -344,7 +339,7 @@ public abstract class FileQueue {
         this.tryDelaySecs = tryDelaySecs;
     }
 
-    private void release() {
+    public void release() {
         permits.release();
     }
 
@@ -357,7 +352,7 @@ public abstract class FileQueue {
      * @throws InterruptedException thrown if waiting was interrupted due to shutdown
      * @throws IOException thrown if there is not enough free space or the queue is full
      */
-    private void ready(boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
+    protected void ready(boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
 
         assert acquireWaitUnit != null;
         assert acquireWait >= 0;

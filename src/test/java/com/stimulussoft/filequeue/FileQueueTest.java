@@ -119,10 +119,10 @@ public class FileQueueTest {
             return id;
         }
 
-        @Override
-        public Boolean call() throws Exception {
-            return true;
-        }
+//        @Override
+//        public Boolean call() throws Exception {
+//            return true;
+//        }
     }
 
     static class TestRetryFileQueue extends FileQueue {
@@ -184,10 +184,10 @@ public class FileQueueTest {
             return id;
         }
 
-        @Override
-        public Boolean call() throws Exception {
-            return true;
-        }
+//        @Override
+//        public Boolean call() throws Exception {
+//            return true;
+//        }
     }
 
 

@@ -23,13 +23,12 @@
 package com.stimulussoft.filequeue;
 
 import java.io.Serializable;
-import java.util.concurrent.Callable;
 
 /**
  * Rather implement the RetryQueueItem
  */
 
-public interface FileQueueItem extends Serializable, Callable<Boolean> {
+public interface FileQueueItem extends Serializable {
 
     String toString();
 
