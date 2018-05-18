@@ -4,7 +4,7 @@
     <groupId>com.stimulussoft</groupId>
     <artifactId>filequeue</artifactId>
     <name>file queue project</name>
-    <version>1.0.10</version>
+    <version>1.0.11</version>
     <packaging>jar</packaging>
     <description>Light weight, high performance, simple, reliable and persistent queue</description>
     <url>https://github.com/stimulussoft/filequeue</url>
@@ -130,7 +130,7 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2-mvstore</artifactId>
-            <version>1.4.196</version>
+            <version>1.4.197</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -161,6 +161,12 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.jimfs</groupId>
+            <artifactId>jimfs</artifactId>
+            <version>1.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

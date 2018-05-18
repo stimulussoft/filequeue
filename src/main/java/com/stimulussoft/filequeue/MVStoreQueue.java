@@ -17,16 +17,27 @@ package com.stimulussoft.filequeue;
 
 
 import com.google.common.base.Preconditions;
+import org.h2.api.ErrorCode;
+import org.h2.message.DbException;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
+import org.h2.store.fs.FilePath;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.channels.FileChannel;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Objects;
+import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * Fast queue implementation on top of MVStore. This class is thread-safe.
@@ -38,12 +49,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 class MVStoreQueue implements Comparable<MVStoreQueue> {
 
-    private static final String NIO_MEM_FS = "nioMemFS:";
     private final String queueName;
     private MVMap<Integer, byte[]> mvMap;
     private MVStore store;
-    private String queueDir;
+    private Path queueDir;
     private final AtomicInteger tailKey = new AtomicInteger(0);
+
+    static {
+        FilePath.register(new JimFSDecorator());
+    }
 
     /**
      * Creates instance of persistent filequeue.
@@ -55,27 +69,13 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
     MVStoreQueue(final Path queueDir,
                         final String queueName) throws IOException {
         Files.createDirectories(queueDir);
-        this.queueDir = queueDir.toAbsolutePath().toString();
+        this.queueDir = queueDir.toAbsolutePath();
         this.queueName = queueName;
         reopen();
     }
 
-    /**
-     * Creates instance of persistent filequeue in memory
-     *
-     * @param queueName descriptive filequeue name
-     * @throws IOException thrown when the given queueEnvPath does not exist and cannot be created.
-     */
-    MVStoreQueue(final String queueName) throws IOException {
-        this.queueDir = NIO_MEM_FS;
-        this.queueName = queueName;
-        reopen();
-    }
-
-    private String getDBName() {
-        if (Objects.equals(queueDir, NIO_MEM_FS)) {
-            return queueDir + queueName;
-        } else return Paths.get(queueDir, queueName).toString();
+    private Path getDBName() {
+        return queueDir.resolve(queueName);
     }
 
     public synchronized void reopen() throws IllegalStateException {
@@ -90,11 +90,12 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
     }
 
     private MVStore getOpenStore() {
-        return new MVStore.Builder().fileName(getDBName()).cacheSize(1).open();
+        String path = getDBName().toUri().toString();
+        return new MVStore.Builder().fileName(path).cacheSize(1).open();
     }
 
     public Path getQueueDir() {
-        return Paths.get(queueDir);
+        return queueDir;
     }
 
     /**
@@ -176,5 +177,160 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
         result = 31 * result + store.hashCode();
         result = 31 * result + getQueueDir().hashCode();
         return result;
+    }
+
+    private static class JimFSDecorator extends FilePath {
+
+        private Path decorated;
+
+        public JimFSDecorator() {
+        }
+
+        private JimFSDecorator(Path path) {
+            this.name = path.toString();
+            this.decorated = path;
+        }
+
+        @Override
+        public long size() {
+            try {
+                return Files.size(decorated);
+            } catch (IOException e) {
+                throw DbException.get(ErrorCode.IO_EXCEPTION_1, name, e.getMessage());
+            }
+        }
+
+        @Override
+        public void moveTo(FilePath filePath, boolean b) {
+
+            System.out.println(name);
+            System.out.println(filePath);
+        }
+
+        @Override
+        public boolean createFile() {
+            try {
+                Files.createFile(decorated);
+                return Files.exists(decorated);
+            } catch (IOException e) {
+                throw DbException.get(ErrorCode.IO_EXCEPTION_1, name, e.getMessage());
+            }
+        }
+
+        @Override
+        public boolean exists() {
+            return Files.exists(decorated);
+        }
+
+        @Override
+        public void delete() {
+            try {
+                Files.deleteIfExists(decorated);
+            } catch (IOException e) {
+                throw DbException.get(ErrorCode.IO_EXCEPTION_1, name, e.getMessage());
+            }
+        }
+
+        @Override
+        public List<FilePath> newDirectoryStream() {
+            try {
+                return Files.walk(decorated).map(JimFSDecorator::new).collect(Collectors.toList());
+            } catch (IOException e) {
+                throw DbException.get(ErrorCode.IO_EXCEPTION_1, name, e.getMessage());
+            }
+        }
+
+        @Override
+        public FilePath toRealPath() {
+            return getPath(decorated);
+        }
+
+        @Override
+        public FilePath getParent() {
+            Path parent = decorated.getParent();
+            return parent == null ? null : getPath(parent);
+        }
+
+        @Override
+        public boolean isDirectory() {
+            return Files.isDirectory(decorated);
+        }
+
+        @Override
+        public boolean isAbsolute() {
+            return decorated.toFile().isAbsolute();
+        }
+
+        @Override
+        public long lastModified() {
+            try {
+                return Files.getLastModifiedTime(decorated).toMillis();
+            } catch (IOException e) {
+                throw DbException.get(ErrorCode.IO_EXCEPTION_1, name, e.getMessage());
+            }
+        }
+
+        @Override
+        public boolean canWrite() {
+            return Files.isWritable(decorated);
+        }
+
+        @Override
+        public void createDirectory() {
+            try {
+                Files.createDirectories(decorated);
+            } catch (IOException e) {
+                throw DbException.get(ErrorCode.IO_EXCEPTION_1, name, e.getMessage());
+            }
+        }
+
+        @Override
+        public OutputStream newOutputStream(boolean append) throws IOException {
+            return append ? Files.newOutputStream(decorated, StandardOpenOption.APPEND)
+                    : Files.newOutputStream(decorated);
+        }
+
+        @Override
+        public FileChannel open(String s) throws IOException {
+            try {
+                Files.createFile(decorated);
+            } catch (FileAlreadyExistsException exist) {
+
+            }
+
+            if ("r".equalsIgnoreCase(s)) return FileChannel.open(decorated, StandardOpenOption.READ);
+            return FileChannel.open(decorated, StandardOpenOption.READ, StandardOpenOption.WRITE);
+        }
+
+        @Override
+        public InputStream newInputStream() throws IOException {
+            return Files.newInputStream(decorated);
+        }
+
+        @Override
+        public boolean setReadOnly() {
+            return decorated.toFile().setReadOnly();
+        }
+
+        @Override
+        public String getScheme() {
+            return "jimfs";
+        }
+
+        @Override
+        public FilePath getPath(String path) {
+            try {
+                URI uri = new URI(path);
+                if (!uri.getScheme().equalsIgnoreCase(getScheme()))
+                    throw DbException.get(ErrorCode.IO_EXCEPTION_1, name, uri.getScheme() + " not exists");
+                return new JimFSDecorator(Paths.get(uri));
+            } catch (URISyntaxException e) {
+                throw DbException.get(ErrorCode.IO_EXCEPTION_1, name, e.getMessage());
+            }
+        }
+
+        private FilePath getPath(Path path) {
+            return new JimFSDecorator(path);
+        }
     }
 }

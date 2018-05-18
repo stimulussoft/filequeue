@@ -19,9 +19,13 @@ package com.stimulussoft.filequeue;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import rules.JimfsFilesystemRule;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -44,10 +48,14 @@ public class MVStoreQueueTest {
     CountDownLatch toPush = new CountDownLatch(toGenerate);
     CountDownLatch toPoll = new CountDownLatch(toGenerate);
 
+    @Rule
+    public final JimfsFilesystemRule jimfsFilesystemRule = new JimfsFilesystemRule();
 
     @Before
     public void prepare() throws IOException {
-        queue = new MVStoreQueue("test");
+        Path queuePath = jimfsFilesystemRule.getFileSystem().getPath("/queue");
+        Files.createDirectory(queuePath);
+        queue = new MVStoreQueue(queuePath, "test");
     }
 
     @After
