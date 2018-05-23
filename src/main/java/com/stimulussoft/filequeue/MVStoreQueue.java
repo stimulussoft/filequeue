@@ -90,7 +90,9 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
     }
 
     private MVStore getOpenStore() {
-        String path = getDBName().toUri().toString();
+        Path dbName = getDBName();
+        String path = dbName.toUri().getScheme().equals("jimfs") ?
+                dbName.toUri().toString() : dbName.toString();
         return new MVStore.Builder().fileName(path).cacheSize(1).open();
     }
 
