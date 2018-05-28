@@ -19,7 +19,7 @@ The steps for integration are as follows:
         <scope>test</scope>
     </dependency>
 
-  2. Implement FileQueueItem or extend RetryQueueItem (for retry support)
+  2. extend FileQueueItem
   3. Extend FileQueue
     1. implement getFileQueueClass to return class created in step 1) above
     2. implement processFileQueueItem(FileQueueItem item) to perform actual processing work
@@ -32,7 +32,7 @@ For API docs, refer to the file queue [JavaDoc](http://javadoc.io/doc/com.stimul
 Here's an example snippet of code showing the creation of the queue, a client sending pushing some messages and the consumption of the messages.
 
     RetryFileQueue  queue = new RetryFileQueue();
-    queue.init(queueName, db, MAXQUEUESIZE);
+    queue.init(queueName, db, MAXQUEUESIZE, RETRIES, RETRYDELAY, RETRYDELAYTIMEUNIT, CYCLEDELAY, CYCLEDELAYTIMEUNIT);
     queue.setMaxTries(RETRIES);
     queue.setTryDelaySecs(RETRYDELAY);
     queue.startQueue();
@@ -78,7 +78,7 @@ FileQueueItem PoJo. You can store anything in this object, provided it is compat
 
     import com.stimulussoft.filequeue.*;
 
-    static class TestRetryFileQueueItem extends RetryQueueItem {
+    static class TestRetryFileQueueItem extends FileQueueItem {
 
       Integer id;
 

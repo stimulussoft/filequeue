@@ -23,13 +23,37 @@
 package com.stimulussoft.filequeue;
 
 import java.io.Serializable;
+import java.util.Date;
 
 /**
- * Rather implement the RetryQueueItem
+ *  FileQueueItem
  */
 
-public interface FileQueueItem extends Serializable {
+public abstract class FileQueueItem implements Serializable {
 
-    String toString();
+    private int retryCount;
+    private Date tryDate;
+
+    public Date getTryDate() {
+        return tryDate;
+    }
+
+    public void setTryDate(Date date) {
+        this.tryDate = date;
+    }
+
+    public int getTryCount() {
+        return retryCount;
+    }
+
+    public void setTryCount(int tryCount) {
+        this.retryCount = tryCount;
+    }
+
+    public void incTryCount() {
+        this.retryCount++;
+    }
+
+    public abstract String toString();
 
 }

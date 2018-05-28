@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /* DB Processing Queue
@@ -44,7 +45,7 @@ public class QueueProcessorTest {
         Path dir = Files.createTempDirectory("filequeue");
 
         final Phaser phaser = new Phaser();
-        TestQueue testQueue = new TestQueue(dir, "test_queue", Integer.class, 5, 1,
+        TestQueue testQueue = new TestQueue(dir, "test_queue", Integer.class, 5, 1, TimeUnit.SECONDS,
                 new AlwaysTrueConsumer(phaser));
 
         int threads = 128;
@@ -106,8 +107,8 @@ public class QueueProcessorTest {
 
     private static class TestQueue extends QueueProcessor<Integer> {
 
-        public TestQueue(Path queueROOT, String queueName, Class<Integer> type, int maxTries, int retryDelaySecs, Consumer<Integer> consumer) throws IOException {
-            super(queueROOT, queueName, type, maxTries, retryDelaySecs, consumer);
+        public TestQueue(Path queueROOT, String queueName, Class<Integer> type, int maxTries, int retryDelay, TimeUnit retryDelayTimeUnit, Consumer<Integer> consumer) throws IOException {
+            super(queueROOT, queueName, type, maxTries, retryDelay, retryDelayTimeUnit, consumer,1, TimeUnit.SECONDS);
         }
     }
 
