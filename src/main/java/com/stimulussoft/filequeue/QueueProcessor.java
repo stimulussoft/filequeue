@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.concurrent.*;
 
 /**
- * Queue processor. This class is thread-safe.
+ * Queue processor. This class is thread-safe.anupo
  *
  * @author Valentin Popov
  * @author Jamie Band
@@ -64,25 +64,33 @@ class QueueProcessor<T> {
     private Optional<ScheduledFuture<?>> cleanupTask = Optional.empty();
     private volatile boolean doRun = true;
     private int maxTries = 0;
-    private int retryDelaySecs = 0;
+    private int retryDelay = 1;
+    private TimeUnit retryDelayTimeUnit = TimeUnit.SECONDS;
+    private int clockDelay;
+    private TimeUnit clockDelayTimeUnit;
+
 
     /**
      * Create a new QueueProcessor
      *
-     * @param queuePath      path to queue database
-     * @param queueName      friendly name for the queue
-     * @param type           filequeueitem type
-     * @param maxTries       maximum number of retries
-     * @param retryDelaySecs retry delays in secs
-     * @param consumer       queue consumer
-     * @param expiration     notification for item expiry
+     * @param queuePath              path to queue database
+     * @param queueName              friendly name for the queue
+     * @param type                   filequeueitem type
+     * @param maxTries               maximum number of retries
+     * @param retryDelay             delay between retries
+     * @param retryDelayTimeUnit     delay between retry timeunit
+     * @param consumer               queue consumer
+     * @param expiration             notification for item expiry
+     * @param clockDelay             processing clock delay. This is the 'clock speed' of queue processor.
+     * @param clockDelayTimeUnit     processing clock delay time unit
      * @throws IllegalStateException    if the queue is not running
      * @throws IllegalArgumentException if the type cannot be serialized by jackson
      * @throws IOException              if the item could not be serialized
      */
 
     QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
-                          int retryDelaySecs, Consumer<T> consumer, Expiration<T> expiration) throws IOException, IllegalStateException, IllegalArgumentException {
+                          int retryDelay, TimeUnit retryDelayTimeUnit, Consumer<T> consumer, Expiration<T> expiration,
+                          int clockDelay, TimeUnit clockDelayTimeUnit) throws IOException, IllegalStateException, IllegalArgumentException {
         objectMapper = createObjectMapper();
         if (!objectMapper.canSerialize(type)) {
             throw new IllegalArgumentException("The given type cannot be serialized by jackson " +
@@ -93,8 +101,11 @@ class QueueProcessor<T> {
         this.expiration = expiration;
         this.type = type;
         this.maxTries = maxTries;
-        this.retryDelaySecs = retryDelaySecs;
-        cleanupTask = Optional.of(mvstoreCleanUP.scheduleWithFixedDelay(new MVStoreCleaner(this), 1, 1, TimeUnit.MINUTES));
+        this.retryDelay = retryDelay;
+        this.retryDelayTimeUnit = retryDelayTimeUnit;
+        this.clockDelay = clockDelay;
+        this.clockDelayTimeUnit = clockDelayTimeUnit;
+        cleanupTask = Optional.of(mvstoreCleanUP.scheduleWithFixedDelay(new MVStoreCleaner(this), clockDelay, clockDelay, clockDelayTimeUnit));
     }
 
     /**
@@ -104,27 +115,31 @@ class QueueProcessor<T> {
      * @param queueName      friendly name for the queue
      * @param type           filequeueitem type
      * @param maxTries       maximum number of retries
-     * @param retryDelaySecs retry delays in secs
+     * @param retryDelay     delay between retries
+     * @param retryDelayTimeUnit  retry time unit
      * @param consumer       queue consumer
      * @throws IllegalStateException    if the queue is not running
      * @throws IllegalArgumentException if the type cannot be serialized by jackson
      * @throws IOException              if the item could not be serialized
      */
     QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
-                          int retryDelaySecs, Consumer<T> consumer) throws IOException, IllegalStateException, IllegalArgumentException {
+                          int retryDelay, TimeUnit retryDelayTimeUnit, Consumer<T> consumer,int clockDelay, TimeUnit clockDelayTimeUnit) throws IOException, IllegalStateException, IllegalArgumentException {
 
-        this(queuePath, queueName, type, maxTries, retryDelaySecs, consumer, null);
+        this(queuePath, queueName, type, maxTries, retryDelay, retryDelayTimeUnit, consumer, null, clockDelay, clockDelayTimeUnit);
     }
 
     /**
-     * @param earlierDate
-     * @param laterDate
-     * @return Math.abs between 2 dates or 0 if any of param are null.
+     * Get a diff between two dates
+     * @param date1 the oldest date
+     * @param date2 the newest date
+     * @param timeUnit the unit in which you want the diff
+     * @return the diff value, in the provided unit
      */
-    private static int secondDiff(Date earlierDate, Date laterDate) {
-        if (earlierDate == null || laterDate == null) return 0;
-        return (int) (Math.abs((laterDate.getTime() - earlierDate.getTime()) / SECOND_MILLIS));
+    private static long dateDiff(Date date1, Date date2, TimeUnit timeUnit) {
+        long diffInMillies = date2.getTime() - date1.getTime();
+        return timeUnit.convert(diffInMillies,TimeUnit.MILLISECONDS);
     }
+
 
     public Path getQueueBaseDir() {
         return mvStoreQueue.getQueueDir();
@@ -187,19 +202,18 @@ class QueueProcessor<T> {
     }
 
     private boolean isNeedRetry(T item) {
-        if (maxTries <= 0) return false;
-        RetryQueueItem queueItem = (RetryQueueItem) item;
+        if (maxTries <= 0) return true;
+        FileQueueItem queueItem = (FileQueueItem) item;
         return queueItem.getTryCount() < maxTries;
     }
 
     private boolean isTimeToRetry(T item) {
-        if (maxTries <= 0) return false;
-        Date tryDate = ((RetryQueueItem) item).getTryDate();
+        Date tryDate = ((FileQueueItem) item).getTryDate();
         Date newTryDate = new Date();
         if (tryDate == null ||
-                secondDiff(((RetryQueueItem) item).getTryDate(), newTryDate) > retryDelaySecs) {
-            ((RetryQueueItem) item).setTryDate(newTryDate);
-            ((RetryQueueItem) item).incTryCount();
+                dateDiff(((FileQueueItem) item).getTryDate(), newTryDate, retryDelayTimeUnit) > retryDelay) {
+            ((FileQueueItem) item).setTryDate(newTryDate);
+            if (maxTries > 0) ((FileQueueItem) item).incTryCount();
             return true;
         } else
             return false;
@@ -256,6 +270,7 @@ class QueueProcessor<T> {
             }
         }
     }
+
 
     private final class MVStoreCleaner implements Runnable {
 

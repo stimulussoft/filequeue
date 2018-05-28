@@ -19,16 +19,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileQueueTest {
 
-    static final int ROUNDS = 1000;
-    static final int RETRIES = 3;
-    static final int RETRYDELAY = 0;
-    static final int MAXQUEUESIZE = 100;
+    private static final int ROUNDS = 200;
+    private static final int RETRIES = 10;
+    private static final int RETRYDELAY = 0;
+    private static final int MAXQUEUESIZE = 100;
 
 
-    static AtomicInteger processedTest1 = new AtomicInteger(0);
-    static AtomicInteger producedTest1 = new AtomicInteger(0);
-    static AtomicInteger processedTest2 = new AtomicInteger(0);
-    static AtomicInteger producedTest2 = new AtomicInteger(0);
+    private static AtomicInteger processedTest1 = new AtomicInteger(0);
+    private static AtomicInteger producedTest1 = new AtomicInteger(0);
+    private static AtomicInteger processedTest2 = new AtomicInteger(0);
+    private static AtomicInteger producedTest2 = new AtomicInteger(0);
 
      /* Test Without Retries */
 
@@ -95,10 +95,10 @@ public class FileQueueTest {
         }
         System.out.println("processed: " + processed.get() + " produced: " + produced.get());
 
-        Assert.assertTrue(processed.get() == produced.get());
+        Assert.assertEquals(processed.get(), produced.get());
     }
 
-    static class TestFileQueueItem implements FileQueueItem {
+    static class TestFileQueueItem extends FileQueueItem {
 
         Integer id;
         Boolean requeue;
@@ -137,7 +137,7 @@ public class FileQueueTest {
         }
 
         @Override
-        public ProcessResult processFileQueueItem(FileQueueItem item) throws InterruptedException {
+        public ProcessResult processFileQueueItem(FileQueueItem item)  {
             try {
                 TestRetryFileQueueItem retryFileQueueItem = (TestRetryFileQueueItem) item;
                 //logger.debug("found item "+ retryFileQueueItem.getId() +" try count "+retryFileQueueItem.getTryCount());
@@ -163,7 +163,7 @@ public class FileQueueTest {
 
      /* Implement File Queue */
 
-    static class TestRetryFileQueueItem extends RetryQueueItem {
+    static class TestRetryFileQueueItem extends FileQueueItem {
 
         Integer id;
 
@@ -204,7 +204,7 @@ public class FileQueueTest {
         }
 
         @Override
-        public ProcessResult processFileQueueItem(FileQueueItem item) throws InterruptedException {
+        public ProcessResult processFileQueueItem(FileQueueItem item){
             processedTest1.incrementAndGet();
             return ProcessResult.PROCESS_SUCCESS;
         }
