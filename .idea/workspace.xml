@@ -2,15 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2c0f753e-c31b-43a4-b55d-4153d9ab5ca9" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.markdown" beforeDir="false" afterPath="$PROJECT_DIR$/README.markdown" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueue.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueueItem.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/FileQueueItem.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/RetryQueueItem.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/FileQueueTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/FileQueueTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/QueueProcessorTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/QueueProcessorTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <ignored path="$PROJECT_DIR$/target/" />
@@ -91,11 +83,20 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="pom.xml" pinned="false" current-in-tab="true">
+      <file leaf-file-name="pom.xml" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pom.xml">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="105">
-              <caret line="7" selection-start-line="7" selection-end-line="7" />
+            <state relative-caret-position="270">
+              <caret line="18" column="20" lean-forward="true" selection-start-line="18" selection-start-column="20" selection-end-line="18" selection-end-column="20" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name=".gitignore" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/.gitignore">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="634">
+              <caret line="51" column="18" selection-start-line="51" selection-start-column="18" selection-end-line="51" selection-end-column="18" />
             </state>
           </provider>
         </entry>
@@ -205,11 +206,11 @@
         <option value="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/FileQueueTest.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/QueueProcessor.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/Consumer.java" />
-        <option value="$PROJECT_DIR$/.gitignore" />
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/PathDisk.java" />
         <option value="$PROJECT_DIR$/src/test/java/com/stimulussoft/filequeue/MVStoreQueueTest.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/stimulussoft/filequeue/MVStoreQueue.java" />
         <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/.gitignore" />
       </list>
     </option>
   </component>
@@ -579,7 +580,7 @@
       <workItem from="1526912489819" duration="587000" />
       <workItem from="1527079780887" duration="833000" />
       <workItem from="1527080773223" duration="389000" />
-      <workItem from="1527531605945" duration="22000" />
+      <workItem from="1527531605945" duration="209000" />
     </task>
     <task id="LOCAL-00001" summary="radical rewrite">
       <created>1513205194113</created>
@@ -763,7 +764,14 @@
       <option name="project" value="LOCAL" />
       <updated>1527081036337</updated>
     </task>
-    <option name="localTasksCounter" value="27" />
+    <task id="LOCAL-00027" summary="Merge branch 'master' of https://github.com/stimulussoft/filequeue&#10;&#10;# Conflicts:&#10;#&#9;pom.xml">
+      <created>1527531747331</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1527531747331</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -799,7 +807,7 @@
     </history-entry>
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="96978000" />
+    <option name="totallyTimeSpent" value="97165000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -821,10 +829,10 @@
       <window_info anchor="right" id="Maven Projects" order="3" />
       <window_info anchor="bottom" id="Database Changes" order="8" show_stripe_button="false" />
       <window_info anchor="bottom" id="Run" order="2" sideWeight="0.47424892" weight="0.3713355" />
-      <window_info active="true" anchor="bottom" id="Version Control" order="7" visible="true" weight="0.22757848" />
+      <window_info anchor="bottom" id="Version Control" order="7" visible="true" weight="0.22757848" />
       <window_info anchor="bottom" id="Terminal" order="7" sideWeight="0.49713877" weight="0.34641257" />
       <window_info id="Designer" order="2" />
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.21794872" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.21794872" />
       <window_info anchor="right" id="Database" order="3" weight="0.3297568" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -934,7 +942,8 @@
     <MESSAGE value="mvstore tests" />
     <MESSAGE value="support jimfs for testing" />
     <MESSAGE value="proper filesystem handling" />
-    <option name="LAST_COMMIT_MESSAGE" value="proper filesystem handling" />
+    <MESSAGE value="Merge branch 'master' of https://github.com/stimulussoft/filequeue&#10;&#10;# Conflicts:&#10;#&#9;pom.xml" />
+    <option name="LAST_COMMIT_MESSAGE" value="Merge branch 'master' of https://github.com/stimulussoft/filequeue&#10;&#10;# Conflicts:&#10;#&#9;pom.xml" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1077,6 +1086,14 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="197">
           <caret line="54" column="16" selection-start-line="54" selection-start-column="16" selection-end-line="54" selection-end-column="16" />
+          <folding>
+            <element signature="e#5258#5259#0" expanded="true" />
+            <element signature="e#5294#5295#0" expanded="true" />
+            <element signature="e#5348#5349#0" expanded="true" />
+            <element signature="e#5397#5398#0" expanded="true" />
+            <element signature="e#5431#5432#0" expanded="true" />
+            <element signature="e#5464#5465#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1112,6 +1129,15 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="4755">
           <caret line="356" column="39" selection-start-line="356" selection-start-column="39" selection-end-line="356" selection-end-column="39" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#3828#3829#0" expanded="true" />
+            <element signature="e#3884#3885#0" expanded="true" />
+            <element signature="e#3928#3929#0" expanded="true" />
+            <element signature="e#3964#3965#0" expanded="true" />
+            <element signature="e#5811#5812#0" expanded="true" />
+            <element signature="e#5843#5844#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1119,13 +1145,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="870">
           <caret line="82" column="20" selection-start-line="82" selection-start-column="20" selection-end-line="82" selection-end-column="20" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/.gitignore">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="23" column="21" selection-start-line="23" selection-start-column="21" selection-end-line="23" selection-end-column="21" />
         </state>
       </provider>
     </entry>
@@ -1261,6 +1280,10 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="164">
           <caret line="23" column="11" selection-start-line="23" selection-start-column="11" selection-end-line="23" selection-end-column="11" />
+          <folding>
+            <element signature="e#665#666#0" expanded="true" />
+            <element signature="e#717#718#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1298,8 +1321,15 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/pom.xml">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="105">
-          <caret line="7" selection-start-line="7" selection-end-line="7" />
+        <state relative-caret-position="270">
+          <caret line="18" column="20" lean-forward="true" selection-start-line="18" selection-start-column="20" selection-end-line="18" selection-end-column="20" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="634">
+          <caret line="51" column="18" selection-start-line="51" selection-start-column="18" selection-end-line="51" selection-end-column="18" />
         </state>
       </provider>
     </entry>
