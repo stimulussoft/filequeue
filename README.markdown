@@ -32,7 +32,7 @@ For API docs, refer to the file queue [JavaDoc](http://javadoc.io/doc/com.stimul
 Here's an example snippet of code showing the creation of the queue, a client sending pushing some messages and the consumption of the messages.
 
     RetryFileQueue  queue = new RetryFileQueue();
-    queue.init(queueName, db, MAXQUEUESIZE, RETRIES, RETRYDELAY, RETRYDELAYTIMEUNIT, CYCLEDELAY, CYCLEDELAYTIMEUNIT);
+    queue.init(queueName, db, MAXQUEUESIZE, RETRIES, RETRYDELAY, RETRYDELAYTIMEUNIT);
     queue.setMaxTries(RETRIES);
     queue.setTryDelaySecs(RETRYDELAY);
     queue.startQueue();
