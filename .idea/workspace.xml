@@ -187,10 +187,10 @@
       <find>fileQueueCon</find>
       <find>expire</find>
       <find>asset</find>
-      <find>there sho</find>
+      <find />
       <find>expire()</find>
       <find>expire(</find>
-      <find>throw new</find>
+      <find />
       <find>mvstoreCleanUP</find>
       <find>startQueue</find>
       <find>startq</find>
