@@ -108,7 +108,7 @@ public class QueueProcessorTest {
     private static class TestQueue extends QueueProcessor<Integer> {
 
         public TestQueue(Path queueROOT, String queueName, Class<Integer> type, int maxTries, int retryDelay, TimeUnit retryDelayTimeUnit, Consumer<Integer> consumer) throws IOException {
-            super(queueROOT, queueName, type, maxTries, retryDelay, retryDelayTimeUnit, consumer,1, TimeUnit.SECONDS);
+            super(queueROOT, queueName, type, maxTries, retryDelay, retryDelayTimeUnit, consumer);
         }
     }
 

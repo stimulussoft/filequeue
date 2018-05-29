@@ -66,8 +66,6 @@ class QueueProcessor<T> {
     private int maxTries = 0;
     private int retryDelay = 1;
     private TimeUnit retryDelayTimeUnit = TimeUnit.SECONDS;
-    private int clockDelay;
-    private TimeUnit clockDelayTimeUnit;
 
 
     /**
@@ -81,16 +79,13 @@ class QueueProcessor<T> {
      * @param retryDelayTimeUnit     delay between retry timeunit
      * @param consumer               queue consumer
      * @param expiration             notification for item expiry
-     * @param clockDelay             processing clock delay. This is the 'clock speed' of queue processor.
-     * @param clockDelayTimeUnit     processing clock delay time unit
      * @throws IllegalStateException    if the queue is not running
      * @throws IllegalArgumentException if the type cannot be serialized by jackson
      * @throws IOException              if the item could not be serialized
      */
 
     QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
-                          int retryDelay, TimeUnit retryDelayTimeUnit, Consumer<T> consumer, Expiration<T> expiration,
-                          int clockDelay, TimeUnit clockDelayTimeUnit) throws IOException, IllegalStateException, IllegalArgumentException {
+                          int retryDelay, TimeUnit retryDelayTimeUnit, Consumer<T> consumer, Expiration<T> expiration) throws IOException, IllegalStateException, IllegalArgumentException {
         objectMapper = createObjectMapper();
         if (!objectMapper.canSerialize(type)) {
             throw new IllegalArgumentException("The given type cannot be serialized by jackson " +
@@ -103,9 +98,8 @@ class QueueProcessor<T> {
         this.maxTries = maxTries;
         this.retryDelay = retryDelay;
         this.retryDelayTimeUnit = retryDelayTimeUnit;
-        this.clockDelay = clockDelay;
-        this.clockDelayTimeUnit = clockDelayTimeUnit;
-        cleanupTask = Optional.of(mvstoreCleanUP.scheduleWithFixedDelay(new MVStoreCleaner(this), clockDelay, clockDelay, clockDelayTimeUnit));
+        int cleanupDelay = retryDelay <= 1 ? 1 : retryDelay / 2;
+        cleanupTask = Optional.of(mvstoreCleanUP.scheduleWithFixedDelay(new MVStoreCleaner(this), cleanupDelay, cleanupDelay, retryDelayTimeUnit));
     }
 
     /**
@@ -123,9 +117,9 @@ class QueueProcessor<T> {
      * @throws IOException              if the item could not be serialized
      */
     QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
-                          int retryDelay, TimeUnit retryDelayTimeUnit, Consumer<T> consumer,int clockDelay, TimeUnit clockDelayTimeUnit) throws IOException, IllegalStateException, IllegalArgumentException {
+                          int retryDelay, TimeUnit retryDelayTimeUnit, Consumer<T> consumer) throws IOException, IllegalStateException, IllegalArgumentException {
 
-        this(queuePath, queueName, type, maxTries, retryDelay, retryDelayTimeUnit, consumer, null, clockDelay, clockDelayTimeUnit);
+        this(queuePath, queueName, type, maxTries, retryDelay, retryDelayTimeUnit, consumer, null);
     }
 
     /**
@@ -310,5 +304,6 @@ class QueueProcessor<T> {
         }
 
     }
+
 
 }

@@ -62,8 +62,6 @@ public abstract class FileQueue {
     private int minFreeSpaceMb = 20;
     private int diskSpaceCheckDelayMsec = 20;
     private QueueProcessor<FileQueueItem> transferQueue;
-    private int clockDelay = 1;
-    private TimeUnit clockDelayTimeUnit = TimeUnit.SECONDS;
 
     private final Consumer<FileQueueItem> fileQueueConsumer = item -> {
         try {
@@ -101,11 +99,9 @@ public abstract class FileQueue {
      * @param maxTries           maximum no item process retry attempts (set to zero for infinite)
      * @param tryDelay           time to wait between item process attempts
      * @param tryDelayTimeUnit   time unit of tryDelay
-     * @param clockDelay         delay between each queue processing cycle. This defines the 'clock speed' of the queue processor. (low value = higher CPU utilization)
-     * @param clockDelayTimeUnit time unit of clockDelay
      */
-    public FileQueue(String queueName, Path queuePath, int maxQueueSize, int maxTries, int tryDelay, TimeUnit tryDelayTimeUnit, int clockDelay, TimeUnit clockDelayTimeUnit) {
-        init(queueName, queuePath, maxQueueSize, maxTries, tryDelay, tryDelayTimeUnit, clockDelay, clockDelayTimeUnit);
+    public FileQueue(String queueName, Path queuePath, int maxQueueSize, int maxTries, int tryDelay, TimeUnit tryDelayTimeUnit) {
+        init(queueName, queuePath, maxQueueSize, maxTries, tryDelay, tryDelayTimeUnit);
     }
 
     public void setLogger(Logger logger) {
@@ -122,7 +118,7 @@ public abstract class FileQueue {
      */
 
     public void init(String queueName, Path queuePath, int maxQueueSize) {
-        init(queueName, queuePath, maxQueueSize, 1, 1, TimeUnit.SECONDS, 1, TimeUnit.SECONDS);
+        init(queueName, queuePath, maxQueueSize, 1, 1, TimeUnit.SECONDS);
     }
     
     /**
@@ -135,13 +131,10 @@ public abstract class FileQueue {
      * @param maxTries     maximum no item process retry attempts (set to zero for infinite)
      * @param tryDelay     time to wait between item process attempts
      * @param tryDelayTimeUnit   time unit of tryDelay
-     * @param clockDelayTimeUnit delay time unit between each processing cycle.
-     * @param clockDelay   delay between each queue processing cycle. This defines the 'clock speed' of the queue processor. (low value = higher CPU utilization)
-     * @param clockDelayTimeUnit time unit of clockDelay
      *                     
      */
 
-    public void init(String queueName, Path queuePath, int maxQueueSize, int maxTries, int tryDelay, TimeUnit tryDelayTimeUnit, int clockDelay, TimeUnit clockDelayTimeUnit) {
+    public void init(String queueName, Path queuePath, int maxQueueSize, int maxTries, int tryDelay, TimeUnit tryDelayTimeUnit) {
         assert queueName != null;
         assert queuePath != null;
         assert maxQueueSize > 0;
@@ -151,8 +144,6 @@ public abstract class FileQueue {
         this.maxTries = maxTries;
         this.tryDelay = tryDelay;
         this.tryDelayTimeUnit = tryDelayTimeUnit;
-        this.clockDelay = clockDelay;
-        this.clockDelayTimeUnit = clockDelayTimeUnit;
         isStarted.set(false);
     }
 
@@ -241,7 +232,7 @@ public abstract class FileQueue {
         assert queueName != null;
         Files.createDirectories(queuePath);
         transferQueue = new QueueProcessor<FileQueueItem>(queuePath, queueName, getFileQueueItemClass(), maxTries,
-                tryDelay, tryDelayTimeUnit, fileQueueConsumer, fileQueueExpiration, clockDelay, clockDelayTimeUnit);
+                tryDelay, tryDelayTimeUnit, fileQueueConsumer, fileQueueExpiration);
     }
 
 
@@ -472,46 +463,6 @@ public abstract class FileQueue {
     }
 
     /**
-     * Return delay between each processing cycle. Defines the 'clock speed' of queue processor.
-     *
-     * @return clock delay
-     */
-
-    public int getClockDelay() {
-        return clockDelay;
-    }
-
-    /**
-     * Set delay between processing cycles. Defines the 'clock' speed of the queue processor.
-     *
-     * @param clockDelay delay between processing cycles
-     */
-
-    public void setClockDelay(int clockDelay) {
-        this.clockDelay = clockDelay;
-    }
-
-    /**
-     * Set time unit of clock delay
-     *
-     * @param clockDelayTimeUnit delay between processing cycles
-     */
-
-    public void setClockDelayTimeUnit(TimeUnit clockDelayTimeUnit) {
-        this.clockDelayTimeUnit = clockDelayTimeUnit;
-    }
-
-    /**
-     * Return time unit of clock delay
-     *
-     * @return clock delay
-     */
-
-    public TimeUnit getClockDelayTimeUnit() {
-        return clockDelayTimeUnit;
-    }
-
-    /**
      * Return time to wait between item process attempts
      *
      * @return try delay
@@ -534,22 +485,13 @@ public abstract class FileQueue {
     /**
      * Set time unit of tryDelay
      *
-     * @param tryDelayTimeUnit delay between processing clocks
+     * @param tryDelayTimeUnit tryDelay time unit
      */
 
     public void setTryDelayTimeUnit(TimeUnit tryDelayTimeUnit) {
         this.tryDelayTimeUnit = tryDelayTimeUnit;
     }
 
-    /**
-     * Return time unit of tryDelay
-     *
-     * @return clock delay
-     */
-
-    public TimeUnit getTryDelayTimeUnit() {
-        return clockDelayTimeUnit;
-    }
 
     public enum ProcessResult {
         PROCESS_SUCCESS, /* process was successful */
