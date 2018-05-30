@@ -25,7 +25,7 @@ Note: Build on maven central is outdated. Please checkout the source code from G
   3. Extend FileQueue
     1. implement getFileQueueClass to return class created in step 1) above
     2. implement processFileQueueItem(FileQueueItem item) to perform actual processing work
-  4. Call init(..) to initialize the queue
+  4. Call config() to construct an appropriate configuration
   5. Call startQueue() to start the queue
   6. Call stopQueue() to stop the queue processing
 
