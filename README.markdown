@@ -15,10 +15,12 @@ The steps for integration are as follows:
     <dependency>
         <groupId>com.stimulussoft</groupId>
         <artifactId>filequeue</artifactId>
-        <version>1.0.4</version>
+        <version>[insert version]</version>
         <scope>test</scope>
     </dependency>
 
+Note: Build on maven central is outdated. Please checkout the source code from Git hub and run mvn install to build the library.
+  
   2. extend FileQueueItem
   3. Extend FileQueue
     1. implement getFileQueueClass to return class created in step 1) above
@@ -29,19 +31,23 @@ The steps for integration are as follows:
 
 For API docs, refer to the file queue [JavaDoc](http://javadoc.io/doc/com.stimulussoft/filequeue/1.0.4).
 
-Here's an example snippet of code showing the creation of the queue, a client sending pushing some messages and the consumption of the messages.
+Here's an example snippet of code showing the creation of the queue, a client sending pushing some messages and the consumption of the messages. 
 
     RetryFileQueue  queue = new RetryFileQueue();
-    queue.init(queueName, db, MAXQUEUESIZE, RETRIES, RETRYDELAY, RETRYDELAYTIMEUNIT);
-    queue.setMaxTries(RETRIES);
-    queue.setTryDelaySecs(RETRYDELAY);
-    queue.startQueue();
+    RetryFileQueue.Config config = RetryFileQueue.config().queueName(queueName).queuePath(db)
+                              .type(TestRetryFileQueueItem.class).maxQueueSize(MAXQUEUESIZE)
+                              .retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.EXPONENTIAL)
+                              .retryDelay(RETRYDELAY).maxRetryDelay(MAXRETRYDELAY)
+                              .maxRetries(0);
+    queue.startQueue(config);
     for (int i = 0; i < ROUNDS; i++) {
         queue.queueItem(new RetryFileQueueItem(i));
     }
 
     // when finished call stopQueue
     queue.stopQueue();
+
+In the above example, file queue retry policy is configured for exponential backoff. Set maxRetries to zero for infinite retries. 
 
 The FileQueue itself.
 
