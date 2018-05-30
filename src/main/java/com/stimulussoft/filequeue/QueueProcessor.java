@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.*;
 
 /**
@@ -40,7 +41,6 @@ import java.util.concurrent.*;
 class QueueProcessor<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueProcessor.class);
-    private final static long SECOND_MILLIS = 1000;
     private static final ExecutorService executorService = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),
             Runtime.getRuntime().availableProcessors() * 8, 60L, TimeUnit.SECONDS,
@@ -55,71 +55,131 @@ class QueueProcessor<T> {
         MoreExecutors.addDelayedShutdownHook(mvstoreCleanUP, 60L, TimeUnit.SECONDS);
     }
 
+    public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL}
+
     private final ObjectMapper objectMapper;
     private final MVStoreQueue mvStoreQueue;
     private final Class<T> type;
     private final Consumer<T> consumer;
     private final Expiration<T> expiration;
     private final Phaser restorePolled = new Phaser();
-    private Optional<ScheduledFuture<?>> cleanupTask = Optional.empty();
+    private Optional<ScheduledFuture<?>> cleanupTask;
     private volatile boolean doRun = true;
-    private int maxTries = 0;
-    private int retryDelay = 1;
-    private TimeUnit retryDelayTimeUnit = TimeUnit.SECONDS;
+    private final int maxTries;
+    private final int retryDelay;
+    private final int maxRetryDelay;
+    private final Path queuePath;
+    private final String queueName;
+    private final TimeUnit retryDelayTimeUnit;
+    private final RetryDelayAlgorithm retryDelayAlgorithm;
 
 
-    /**
-     * Create a new QueueProcessor
-     *
-     * @param queuePath              path to queue database
-     * @param queueName              friendly name for the queue
-     * @param type                   filequeueitem type
-     * @param maxTries               maximum number of retries
-     * @param retryDelay             delay between retries
-     * @param retryDelayTimeUnit     delay between retry timeunit
-     * @param consumer               queue consumer
-     * @param expiration             notification for item expiry
-     * @throws IllegalStateException    if the queue is not running
-     * @throws IllegalArgumentException if the type cannot be serialized by jackson
-     * @throws IOException              if the item could not be serialized
-     */
+    public static class Builder {
+        private     Path queuePath;
+        private     String queueName;
+        private     Class type;
+        private     int maxTries                = 0;
+        private     int retryDelay              = 1;
+        private     int maxRetryDelay           = 1;
+        private     TimeUnit retryDelayTimeUnit = TimeUnit.SECONDS;
+        private     Consumer consumer;
+        private     Expiration expiration;
+        private     RetryDelayAlgorithm retryDelayAlgorithm =  RetryDelayAlgorithm.FIXED;
+        /**
+         * Queue path
+         * @param queuePath              path to queue database
+         */
+        public Builder queuePath(Path queuePath) { this.queuePath = queuePath; return this; }
+        /**
+         * Queue name
+         * @param queueName              friendly name for the queue
+         */
+        public Builder queueName(String queueName) { this.queueName = queueName; return this; }
+        /**
+         * Type of queue item
+         * @param type                   filequeueitem type
+         */
+        public Builder type(Class type) { this.type = type; return this; }
+        /**
+         * Maximum number of tries. Set to zero for infinite.
+         * @param maxTries               maximum number of retries
+         */
+        public Builder maxTries(int maxTries) { this.maxTries = maxTries; return this; }
 
-    QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
-                          int retryDelay, TimeUnit retryDelayTimeUnit, Consumer<T> consumer, Expiration<T> expiration) throws IOException, IllegalStateException, IllegalArgumentException {
-        objectMapper = createObjectMapper();
-        if (!objectMapper.canSerialize(type)) {
-            throw new IllegalArgumentException("The given type cannot be serialized by jackson " +
-                    "(checked with new ObjectMapper().canSerialize(type)).");
+        /**
+         * Set fixed delay between retries
+         * @param retryDelay             delay between retries
+         */
+        public Builder retryDelay(int retryDelay) { this.retryDelay = retryDelay; return this; }
+
+        /**
+         * Set maximum delay between retries assuming exponential backoff enabled
+         * @param maxRetryDelay            maximum delay between retries
+         */
+        public Builder maxRetryDelay(int maxRetryDelay) { this.maxRetryDelay = maxRetryDelay; return this; }
+
+        /**
+         * Set retry delay time unit
+         * @param retryDelayTimeUnit           retry delay time unit
+         */
+        public Builder retryDelayTimeUnit(TimeUnit retryDelayTimeUnit) { this.retryDelayTimeUnit = retryDelayTimeUnit; return this; }
+
+        /**
+         * Set retry delay algorithm (FIXED or EXPONENTIAL)
+         * @param  retryDelayAlgorithm            set to either fixed or exponential backoff
+         */
+        public Builder retryDelayAlgorithm(RetryDelayAlgorithm retryDelayAlgorithm) { this.retryDelayAlgorithm = retryDelayAlgorithm; return this; }
+
+        /**
+         * Set retry delay consumer
+         * @param  consumer            retry delay consumer
+         */
+        public Builder consumer(Consumer consumer) { this.consumer = consumer; return this; }
+
+        /**
+         * Set retry delay expiration
+         * @param  expiration            retry delay expiration
+         */
+        public Builder expiration(Expiration expiration) { this.expiration = expiration; return this; }
+
+        public QueueProcessor build() throws IOException, IllegalStateException, IllegalArgumentException {
+            return new QueueProcessor(this);
         }
-        mvStoreQueue = new MVStoreQueue(queuePath, queueName);
-        this.consumer = consumer;
-        this.expiration = expiration;
-        this.type = type;
-        this.maxTries = maxTries;
-        this.retryDelay = retryDelay;
-        this.retryDelayTimeUnit = retryDelayTimeUnit;
-        int cleanupDelay = retryDelay <= 1 ? 1 : retryDelay / 2;
-        cleanupTask = Optional.of(mvstoreCleanUP.scheduleWithFixedDelay(new MVStoreCleaner(this), cleanupDelay, cleanupDelay, retryDelayTimeUnit));
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
      * Create a new QueueProcessor
-     *
-     * @param queuePath      path to queue database
-     * @param queueName      friendly name for the queue
-     * @param type           filequeueitem type
-     * @param maxTries       maximum number of retries
-     * @param retryDelay     delay between retries
-     * @param retryDelayTimeUnit  retry time unit
-     * @param consumer       queue consumer
+     * @param builder                   queue processor builder
      * @throws IllegalStateException    if the queue is not running
      * @throws IllegalArgumentException if the type cannot be serialized by jackson
      * @throws IOException              if the item could not be serialized
      */
-    QueueProcessor(final Path queuePath, final String queueName, final Class<T> type, int maxTries,
-                          int retryDelay, TimeUnit retryDelayTimeUnit, Consumer<T> consumer) throws IOException, IllegalStateException, IllegalArgumentException {
 
-        this(queuePath, queueName, type, maxTries, retryDelay, retryDelayTimeUnit, consumer, null);
+    QueueProcessor(Builder builder) throws IOException, IllegalStateException, IllegalArgumentException {
+        assert builder.queueName != null : "queue name must be specified";
+        assert builder.queuePath != null : "queue path must be specified";
+        assert builder.type != null : "item type must be specified";
+        assert builder.consumer != null : "consumer must be specified";
+        objectMapper = createObjectMapper();
+        assert objectMapper.canSerialize(builder.type) : "The given type is not serializable. it cannot be serialized by jackson";
+
+        this.queueName = builder.queueName;
+        this.queuePath = builder.queuePath;
+        this.consumer = builder.consumer;
+        this.expiration = builder.expiration;
+        this.type = builder.type;
+        this.maxTries = builder.maxTries;
+        this.retryDelay = builder.retryDelay;
+        this.retryDelayTimeUnit = builder.retryDelayTimeUnit;
+        this.maxRetryDelay = builder.maxRetryDelay;
+        this.retryDelayAlgorithm = builder.retryDelayAlgorithm;
+        mvStoreQueue = new MVStoreQueue(builder.queuePath, builder.queueName);
+        int cleanupDelay = retryDelay <= 1 ? 1 : retryDelay / 2;
+        cleanupTask = Optional.of(mvstoreCleanUP.scheduleWithFixedDelay(new MVStoreCleaner(this), cleanupDelay, cleanupDelay, retryDelayTimeUnit));
     }
 
     /**
@@ -186,7 +246,6 @@ class QueueProcessor<T> {
 
     /**
      * Create the {@link ObjectMapper} used for serializing.
-     *
      * @return the configured {@link ObjectMapper}.
      */
     private ObjectMapper createObjectMapper() {
@@ -202,13 +261,24 @@ class QueueProcessor<T> {
     }
 
     private boolean isTimeToRetry(T item) {
+        switch (retryDelayAlgorithm) {
+            case EXPONENTIAL:
+                int tryDelay = ((int) Math.round(Math.pow(2,  ((FileQueueItem) item).getTryCount())));
+                tryDelay = tryDelay > maxRetryDelay ? maxRetryDelay : tryDelay;
+                tryDelay = tryDelay < retryDelay ? retryDelay : tryDelay;
+                return isTimeToRetry(item, tryDelay);
+            default:  return isTimeToRetry(item, retryDelay);
+        }
+    }
+
+    private boolean isTimeToRetry(T item, int retryDelay) {
         Date tryDate = ((FileQueueItem) item).getTryDate();
         Date newTryDate = new Date();
         if (tryDate == null ||
-                dateDiff(((FileQueueItem) item).getTryDate(), newTryDate, retryDelayTimeUnit) > retryDelay) {
-            ((FileQueueItem) item).setTryDate(newTryDate);
-            if (maxTries > 0) ((FileQueueItem) item).incTryCount();
-            return true;
+            dateDiff(((FileQueueItem) item).getTryDate(), newTryDate, retryDelayTimeUnit) > retryDelay) {
+                ((FileQueueItem) item).setTryDate(newTryDate);
+                if (maxTries > 0) ((FileQueueItem) item).incTryCount();
+                return true;
         } else
             return false;
     }
@@ -304,6 +374,65 @@ class QueueProcessor<T> {
         }
 
     }
+
+    /**
+     * Get queue path
+     * @return queue path
+     */
+    public Path getQueuePath() {return queuePath; }
+
+    /**
+     * Get queue name
+     * @return queue name
+     */
+    public String getQueueName() { return queueName; }
+    /**
+     * Get retry delay consumer
+     * @return retry delay consumer
+     */
+
+    public Consumer getConsumer() {return consumer; }
+
+    /**
+     * Get queue item type
+     * @return type
+     */
+    public Class getType() { return type; }
+    /**
+     * Maximum number of tries. Set to zero for infinite.
+     * @return maximum number of retries
+     */
+    public int getMaxTries() { return maxTries; }
+
+    /**
+     * Get fixed delay between retries
+     * @return delay between retries
+     */
+    public int getRetryDelay() { return retryDelay; }
+
+    /**
+     * Get maximum delay between retries assuming exponential backoff enabled
+     * @return maximum delay between retries
+     */
+    public int getMaxRetryDelay() { return maxRetryDelay; }
+
+    /**
+     * Get retry delay time unit
+     * @return retry delay time unit
+     */
+    public TimeUnit getRetryDelayTimeUnit() { return retryDelayTimeUnit; }
+
+    /**
+     * Get retry delay algorithm (FIXED or EXPONENTIAL)
+     * @return either fixed or exponential backoff
+     */
+    public RetryDelayAlgorithm getRetryDelayAlgorithm() { return retryDelayAlgorithm;}
+
+    /**
+     * Get retry delay expiration
+     * @return retry delay expiration
+     */
+    public Expiration getExpiration() { return expiration; }
 
 
 }

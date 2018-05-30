@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /* File Queue Test
@@ -21,9 +22,10 @@ public class FileQueueTest {
 
     private static final int ROUNDS = 200;
     private static final int RETRIES = 10;
-    private static final int RETRYDELAY = 0;
+    private static final int MAXRETRYDELAY = 64;
+    private static final int RETRYDELAY = 1;
     private static final int MAXQUEUESIZE = 100;
-
+    private static final TimeUnit RetryDelayTimeUnit = TimeUnit.MILLISECONDS;
 
     private static AtomicInteger processedTest1 = new AtomicInteger(0);
     private static AtomicInteger producedTest1 = new AtomicInteger(0);
@@ -37,8 +39,8 @@ public class FileQueueTest {
         String queueName = "test1";
         Path db = setup("filequeue test without retries", queueName, producedTest1, processedTest1);
         TestFileQueue queue = new TestFileQueue();
-        queue.init(queueName, db, MAXQUEUESIZE);
-        queue.startQueue();
+        FileQueue.Config config = FileQueue.config().queueName(queueName).queuePath(db).type(TestFileQueueItem.class).maxQueueSize(MAXQUEUESIZE);
+        queue.startQueue(config);
         for (int i = 0; i < ROUNDS; i++) {
             producedTest1.incrementAndGet();
             queue.queueItem(new TestFileQueueItem(i));
@@ -56,10 +58,27 @@ public class FileQueueTest {
         String queueName = "test2";
         Path db = setup("filequeue test with retries", queueName, producedTest2, processedTest2);
         TestRetryFileQueue queue = new TestRetryFileQueue();
-        queue.init(queueName, db, MAXQUEUESIZE);
-        queue.setMaxTries(RETRIES);
-        queue.setTryDelaySecs(RETRYDELAY);
-        queue.startQueue();
+        FileQueue.Config config = FileQueue.config().queueName(queueName).queuePath(db).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
+                                  .retryDelay(RETRYDELAY).retryDelayTimeUnit(RetryDelayTimeUnit).type(TestRetryFileQueueItem.class);
+        queue.startQueue(config);
+        for (int i = 0; i < ROUNDS; i++) {
+            producedTest2.incrementAndGet();
+            queue.queueItem(new TestRetryFileQueueItem(i));
+        }
+        done(producedTest2, processedTest2);
+        queue.stopQueue();
+        MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
+    }
+
+    @Test
+    public void test3() throws Exception {
+        String queueName = "test3";
+        Path db = setup("filequeue test with retries", queueName, producedTest2, processedTest2);
+        TestRetryFileQueue queue = new TestRetryFileQueue();
+        FileQueue.Config config = FileQueue.config().queueName(queueName).queuePath(db).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
+                .retryDelay(RETRYDELAY).retryDelayTimeUnit(RetryDelayTimeUnit)
+                .retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.EXPONENTIAL).retryDelay(RETRYDELAY).maxRetryDelay(MAXRETRYDELAY).type(TestRetryFileQueueItem.class);
+        queue.startQueue(config);
         for (int i = 0; i < ROUNDS; i++) {
             producedTest2.incrementAndGet();
             queue.queueItem(new TestRetryFileQueueItem(i));

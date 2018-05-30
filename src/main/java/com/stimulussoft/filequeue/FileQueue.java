@@ -48,20 +48,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class FileQueue {
 
     private static final long fiftyMegs = 50L * 1024L * 1024L;
-
     protected Logger logger = LoggerFactory.getLogger("com.stimulussoft.archiva");
-    private String queueName;
     private ShutdownHook shutdownHook;
     private final AtomicBoolean isStarted = new AtomicBoolean();
-    private Path queuePath;
-    private int maxTries               = 0;
-    private int tryDelay               = 0;
-    private TimeUnit tryDelayTimeUnit  = TimeUnit.SECONDS;
-    private int maxQueueSize = Integer.MAX_VALUE;
     private final AdjustableSemaphore permits = new AdjustableSemaphore();
     private int minFreeSpaceMb = 20;
     private int diskSpaceCheckDelayMsec = 20;
     private QueueProcessor<FileQueueItem> transferQueue;
+    private Config config;
 
     private final Consumer<FileQueueItem> fileQueueConsumer = item -> {
         try {
@@ -89,63 +83,6 @@ public abstract class FileQueue {
     public FileQueue() {
     }
 
-    /**
-     * Create and initialize a @{@link FileQueue} at queuePath with a maximum queue size.
-     * This method initializes the queue, so no need to call init(..) afterwards
-     *
-     * @param queueName          friendly name for the queue
-     * @param queuePath          path where the queue database resides
-     * @param maxQueueSize       max size of the queue
-     * @param maxTries           maximum no item process retry attempts (set to zero for infinite)
-     * @param tryDelay           time to wait between item process attempts
-     * @param tryDelayTimeUnit   time unit of tryDelay
-     */
-    public FileQueue(String queueName, Path queuePath, int maxQueueSize, int maxTries, int tryDelay, TimeUnit tryDelayTimeUnit) {
-        init(queueName, queuePath, maxQueueSize, maxTries, tryDelay, tryDelayTimeUnit);
-    }
-
-    public void setLogger(Logger logger) {
-        this.logger = logger;
-    }
-
-    /**
-     * initialize a @{@link FileQueue} at queuePath with a maximum queue size.
-     * This method must be called if the filequeue class is initialized using the default constructor.
-     *
-     * @param queueName    name of the queue
-     * @param queuePath    location on disk where the queue database resides
-     * @param maxQueueSize maximum no. items in the queue
-     */
-
-    public void init(String queueName, Path queuePath, int maxQueueSize) {
-        init(queueName, queuePath, maxQueueSize, 1, 1, TimeUnit.SECONDS);
-    }
-    
-    /**
-     * initialize a @{@link FileQueue} at queuePath with a maximum queue size.
-     * This method must be called if the filequeue class is initialized using the default constructor.
-     *
-     * @param queueName    name of the queue
-     * @param queuePath    location on disk where the queue database resides
-     * @param maxQueueSize maximum no. items in the queue
-     * @param maxTries     maximum no item process retry attempts (set to zero for infinite)
-     * @param tryDelay     time to wait between item process attempts
-     * @param tryDelayTimeUnit   time unit of tryDelay
-     *                     
-     */
-
-    public void init(String queueName, Path queuePath, int maxQueueSize, int maxTries, int tryDelay, TimeUnit tryDelayTimeUnit) {
-        assert queueName != null;
-        assert queuePath != null;
-        assert maxQueueSize > 0;
-        this.queueName = queueName;
-        this.queuePath = queuePath;
-        this.maxQueueSize = maxQueueSize;
-        this.maxTries = maxTries;
-        this.tryDelay = tryDelay;
-        this.tryDelayTimeUnit = tryDelayTimeUnit;
-        isStarted.set(false);
-    }
 
     /**
      * Override this method to return a custom FileQueueItem.class.
@@ -172,39 +109,22 @@ public abstract class FileQueue {
     public abstract void expiredItem(FileQueueItem item);
 
 
-    /* Result of filequeue work */
-
-    /**
-     * set maximum filequeue size
-     *
-     * @param maxQueueSize maximum no items in the queue
-     */
-
-    public void setMaxQueueSize(int maxQueueSize) {
-        this.maxQueueSize = maxQueueSize;
-        permits.setMaxPermits(maxQueueSize);
-    }
-
-    public Path getQueuePath() {
-        return queuePath;
-    }
-
     /**
      * Start the queue engine
      *
      * @throws IOException if error reading the db
      */
 
-    public synchronized void startQueue() throws IOException {
-        assert queueName != null;
-        assert queuePath != null;
+    public synchronized void startQueue(Config config) throws IOException, IllegalStateException, IllegalArgumentException {
         if (!isStarted.get()) {
-            permits.setMaxPermits(maxQueueSize);
-            initQueue();
+            this.config = config;
+            transferQueue = config.consumer(fileQueueConsumer).builder.build();
+            permits.setMaxPermits(config.maxQueueSize);
             isStarted.set(true);
             shutdownHook = new ShutdownHook();
             Runtime.getRuntime().removeShutdownHook(shutdownHook);
             Runtime.getRuntime().addShutdownHook(shutdownHook);
+
         }
     }
 
@@ -223,18 +143,87 @@ public abstract class FileQueue {
         }
     }
 
-    /**
-     * Initialize the queue
-     */
+    public static class Config {
 
-    private void initQueue() throws IOException {
-        assert queuePath != null;
-        assert queueName != null;
-        Files.createDirectories(queuePath);
-        transferQueue = new QueueProcessor<FileQueueItem>(queuePath, queueName, getFileQueueItemClass(), maxTries,
-                tryDelay, tryDelayTimeUnit, fileQueueConsumer, fileQueueExpiration);
+        private int  maxQueueSize;
+        QueueProcessor.Builder builder = QueueProcessor.builder();
+        
+        /**
+         * Queue path
+         * @param queuePath             path to queue database
+         */
+        
+        public Config queuePath(Path queuePath) { builder = builder.queuePath(queuePath); return this; }
+        
+        /**
+         * Queue name
+         * @param queueName              friendly name for the queue
+         */
+        public  Config queueName(String queueName) { builder = builder.queueName(queueName); return this; }
+        
+        /**
+         * Type of queue item
+         * @param type                   filequeueitem type
+         */
+        public Config type(Class type) {
+            assert type != FileQueueItem.class && FileQueueItem.class.isAssignableFrom(type) : "type must be a descendant of filequeue";
+            builder = builder.type(type); return this;
+        }
+        
+        /**
+         * Maximum number of tries. Set to zero for infinite.
+         * @param maxTries               maximum number of retries
+         */
+        public  Config maxTries(int maxTries) {builder = builder.maxTries(maxTries); return this; }
+
+        /**
+         * Set fixed delay between retries
+         * @param retryDelay             delay between retries
+         */
+        public  Config retryDelay(int retryDelay) { builder = builder.retryDelay(retryDelay); return this; }
+
+        /**
+         * Set maximum delay between retries assuming exponential backoff enabled
+         * @param maxRetryDelay            maximum delay between retries
+         */
+        public  Config maxRetryDelay(int maxRetryDelay) { builder = builder.maxRetryDelay(maxRetryDelay); return this; }
+
+        /**
+         * Set retry delay time unit
+         * @param retryDelayTimeUnit           retry delay time unit
+         */
+        public  Config retryDelayTimeUnit(TimeUnit retryDelayTimeUnit) { builder = builder.retryDelayTimeUnit(retryDelayTimeUnit); return this; }
+
+        /**
+         * Set retry delay algorithm (FIXED or EXPONENTIAL)
+         * @param  retryDelayAlgorithm            set to either fixed or exponential backoff
+         */
+        public Config retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm retryDelayAlgorithm) {builder = builder.retryDelayAlgorithm(retryDelayAlgorithm); return this; }
+
+        /**
+         * Set retry delay consumer
+         * @param  consumer            retry delay consumer
+         */
+        private  Config consumer(Consumer consumer) {  builder = builder.consumer(consumer); return this; }
+
+        /**
+         * Set retry delay expiration
+         * @param  expiration            retry delay expiration
+         */
+        public  Config expiration(Expiration expiration) {builder = builder.expiration(expiration); return this; }
+
+        /**
+         * Set max queue size
+         * @param  maxQueueSize            maximum size of queue
+         */
+        public  Config maxQueueSize(int maxQueueSize) { this.maxQueueSize = maxQueueSize; return this; }
+
     }
 
+
+    public static  Config config() {
+        return new Config();
+    }
 
     /**
      * Queue item for delivery.
@@ -306,56 +295,6 @@ public abstract class FileQueue {
         return 0;
     }
 
-    /**
-     * Return filequeue name
-     *
-     * @return filequeue name
-     */
-
-    public String getName() {
-        return queueName;
-    }
-
-    /**
-     * Set filequeue name
-     *
-     * @param queueName friendly name of queue
-     */
-
-
-    public void setName(String queueName) {
-        this.queueName = queueName;
-    }
-
-    /**
-     * Return max retries
-     *
-     * @return max retries
-     */
-
-    public int getMaxTries() {
-        return maxTries;
-    }
-
-    /**
-     * Set maximum retries. Set to zero for infinite.
-     *
-     * @param maxTries set maximum retries
-     */
-
-    public void setMaxTries(int maxTries) {
-        this.maxTries = maxTries;
-    }
-
-    /**
-     * Set retry delay (in seconds)
-     *
-     * @param tryDelay delay in seconds
-     */
-
-    public void setTryDelaySecs(int tryDelay) {
-        this.tryDelay = tryDelay;
-    }
 
     public void release() {
         permits.release();
@@ -384,24 +323,24 @@ public abstract class FileQueue {
                 acquired = permits.tryAcquire(acquireWait, acquireWaitUnit);
             }
 
-            long freeSpace = Files.getFileStore(queuePath).getUsableSpace();
+            long freeSpace = Files.getFileStore(transferQueue.getQueuePath()).getUsableSpace();
             if (freeSpace <= minFreeSpace)
-                logger.warn("not enough disk space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}. " +
+                logger.warn("not enough disk space on " + transferQueue.getQueuePath() + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}. " +
                         "blocking operations until diskspace is freed.");
 
             while (isStarted.get() && freeSpace <= minFreeSpace) {
-                freeSpace = Files.getFileStore(queuePath).getUsableSpace();
+                freeSpace = Files.getFileStore(transferQueue.getQueuePath()).getUsableSpace();
                 Thread.sleep(diskSpaceCheckDelayMsec);
             }
 
         } else {
             if (!permits.tryAcquire(acquireWait, acquireWaitUnit))
-                throw new IOException("filequeue " + queuePath + " is full. {maxQueueSize='" + maxQueueSize + "'}");
+                throw new IOException("filequeue " + transferQueue.getQueuePath() + " is full. {maxQueueSize='" + config.maxQueueSize + "'}");
 
-            long freeSpace = Files.getFileStore(queuePath).getUsableSpace();
+            long freeSpace = Files.getFileStore(transferQueue.getQueuePath()).getUsableSpace();
             if (freeSpace <= minFreeSpace) {
                 permits.release();
-                throw new IOException("not enough free space on " + queuePath + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}");
+                throw new IOException("not enough free space on " + transferQueue.getQueuePath() + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}");
             }
 
         }
@@ -460,36 +399,6 @@ public abstract class FileQueue {
 
     public long getNoQueueItems() {
         return transferQueue.size();
-    }
-
-    /**
-     * Return time to wait between item process attempts
-     *
-     * @return try delay
-     */
-
-    public int getTryDelay() {
-        return tryDelay;
-    }
-
-    /**
-     * Set time to wait between item process attempts
-     *
-     * @param tryDelay delay between processing of items
-     */
-
-    public void setTryDelay(int tryDelay) {
-        this.tryDelay = tryDelay;
-    }
-
-    /**
-     * Set time unit of tryDelay
-     *
-     * @param tryDelayTimeUnit tryDelay time unit
-     */
-
-    public void setTryDelayTimeUnit(TimeUnit tryDelayTimeUnit) {
-        this.tryDelayTimeUnit = tryDelayTimeUnit;
     }
 
 

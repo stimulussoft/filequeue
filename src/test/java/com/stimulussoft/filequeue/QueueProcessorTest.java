@@ -45,9 +45,7 @@ public class QueueProcessorTest {
         Path dir = Files.createTempDirectory("filequeue");
 
         final Phaser phaser = new Phaser();
-        TestQueue testQueue = new TestQueue(dir, "test_queue", Integer.class, 5, 1, TimeUnit.SECONDS,
-                new AlwaysTrueConsumer(phaser));
-
+        QueueProcessor testQueue = QueueProcessor.builder().queuePath(dir).queueName("test_queue").type(Integer.class).maxTries(5).maxRetryDelay(1).retryDelayTimeUnit(TimeUnit.SECONDS).consumer(new AlwaysTrueConsumer(phaser)).build();
         int threads = 128;
         int toProcess = 100;
 
@@ -105,11 +103,5 @@ public class QueueProcessorTest {
         }
     }
 
-    private static class TestQueue extends QueueProcessor<Integer> {
-
-        public TestQueue(Path queueROOT, String queueName, Class<Integer> type, int maxTries, int retryDelay, TimeUnit retryDelayTimeUnit, Consumer<Integer> consumer) throws IOException {
-            super(queueROOT, queueName, type, maxTries, retryDelay, retryDelayTimeUnit, consumer);
-        }
-    }
 
 }
