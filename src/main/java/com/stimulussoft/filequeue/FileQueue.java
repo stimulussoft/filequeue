@@ -145,8 +145,8 @@ public abstract class FileQueue {
 
     public static class Config {
 
-        private int  maxQueueSize;
-        QueueProcessor.Builder builder = QueueProcessor.builder();
+        private int maxQueueSize = Integer.MAX_VALUE;
+        private QueueProcessor.Builder builder = QueueProcessor.builder();
         
         /**
          * Queue path

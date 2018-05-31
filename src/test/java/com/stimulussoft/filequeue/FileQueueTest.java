@@ -20,8 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileQueueTest {
 
-    private static final int ROUNDS = 200;
-    private static final int RETRIES = 10;
+    private static final int ROUNDS = 1;
+    private static final int RETRIES = 5;
     private static final int MAXRETRYDELAY = 64;
     private static final int RETRYDELAY = 1;
     private static final int MAXQUEUESIZE = 100;
@@ -29,9 +29,13 @@ public class FileQueueTest {
 
     private static AtomicInteger processedTest1 = new AtomicInteger(0);
     private static AtomicInteger producedTest1 = new AtomicInteger(0);
+    private static AtomicInteger retryTest1 = new AtomicInteger(0);
     private static AtomicInteger processedTest2 = new AtomicInteger(0);
     private static AtomicInteger producedTest2 = new AtomicInteger(0);
-
+    private static AtomicInteger retryTest2 = new AtomicInteger(0);
+    private static AtomicInteger processedTest3 = new AtomicInteger(0);
+    private static AtomicInteger producedTest3 = new AtomicInteger(0);
+    private static AtomicInteger retryTest3 = new AtomicInteger(0);
      /* Test Without Retries */
 
     @Test
@@ -45,7 +49,7 @@ public class FileQueueTest {
             producedTest1.incrementAndGet();
             queue.queueItem(new TestFileQueueItem(i));
         }
-        done(producedTest1, processedTest1);
+        done(producedTest1, processedTest1, retryTest1, false);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
 
@@ -65,7 +69,7 @@ public class FileQueueTest {
             producedTest2.incrementAndGet();
             queue.queueItem(new TestRetryFileQueueItem(i));
         }
-        done(producedTest2, processedTest2);
+        done(producedTest2, processedTest2, retryTest2, true);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
     }
@@ -73,17 +77,17 @@ public class FileQueueTest {
     @Test
     public void test3() throws Exception {
         String queueName = "test3";
-        Path db = setup("filequeue test with retries", queueName, producedTest2, processedTest2);
-        TestRetryFileQueue queue = new TestRetryFileQueue();
+        Path db = setup("filequeue test with retries", queueName, producedTest3, processedTest3);
+        TestRetryFileQueue2 queue = new TestRetryFileQueue2();
         FileQueue.Config config = FileQueue.config().queueName(queueName).queuePath(db).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
                 .retryDelay(RETRYDELAY).retryDelayTimeUnit(RetryDelayTimeUnit)
                 .retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.EXPONENTIAL).retryDelay(RETRYDELAY).maxRetryDelay(MAXRETRYDELAY).type(TestRetryFileQueueItem.class);
         queue.startQueue(config);
         for (int i = 0; i < ROUNDS; i++) {
-            producedTest2.incrementAndGet();
+            producedTest3.incrementAndGet();
             queue.queueItem(new TestRetryFileQueueItem(i));
         }
-        done(producedTest2, processedTest2);
+        done(producedTest3, processedTest3, retryTest3, true);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
     }
@@ -108,27 +112,25 @@ public class FileQueueTest {
 
     /* Implement File Queue */
 
-    private void done(AtomicInteger produced, AtomicInteger processed) throws Exception {
+    private void done(AtomicInteger produced, AtomicInteger processed, AtomicInteger retry, boolean retryEnabled) throws Exception {
         while (processed.get() < ROUNDS) {
             Thread.sleep(1000);
         }
-        System.out.println("processed: " + processed.get() + " produced: " + produced.get());
 
+        System.out.println("processed: " + processed.get() + " produced: " + produced.get());
         Assert.assertEquals(processed.get(), produced.get());
+        System.out.println("actual retries:" + retry.get() + " max retries: "+RETRIES);
+        if (retryEnabled) Assert.assertEquals(RETRIES,retry.get());
     }
 
     static class TestFileQueueItem extends FileQueueItem {
 
         Integer id;
-        Boolean requeue;
 
         public TestFileQueueItem(Integer id) {
             this.id = id;
         }
 
-        public TestFileQueueItem() {
-        }
-
         @Override
         public String toString() {
             return String.valueOf(id);
@@ -138,75 +140,6 @@ public class FileQueueTest {
             return id;
         }
 
-//        @Override
-//        public Boolean call() throws Exception {
-//            return true;
-//        }
-    }
-
-    static class TestRetryFileQueue extends FileQueue {
-
-        public TestRetryFileQueue() {
-
-        }
-
-        @Override
-        public Class getFileQueueItemClass() {
-            return TestRetryFileQueueItem.class;
-        }
-
-        @Override
-        public ProcessResult processFileQueueItem(FileQueueItem item)  {
-            try {
-                TestRetryFileQueueItem retryFileQueueItem = (TestRetryFileQueueItem) item;
-                //logger.debug("found item "+ retryFileQueueItem.getId() +" try count "+retryFileQueueItem.getTryCount());
-                if (retryFileQueueItem.getTryCount() == RETRIES - 1) {
-                    processedTest2.incrementAndGet();
-                    return ProcessResult.PROCESS_SUCCESS;
-                }
-                return ProcessResult.PROCESS_FAIL_REQUEUE;
-            } catch (Exception e) {
-                e.printStackTrace();
-                return ProcessResult.PROCESS_FAIL_NOQUEUE;
-            }
-        }
-
-        @Override
-        public void expiredItem(FileQueueItem item) {
-            Assert.fail("there should be no expired items");
-            throw new RuntimeException();
-        }
-    }
-
-
-
-     /* Implement File Queue */
-
-    static class TestRetryFileQueueItem extends FileQueueItem {
-
-        Integer id;
-
-
-        public TestRetryFileQueueItem() {
-        }
-
-        private TestRetryFileQueueItem(Integer id) {
-            this.id = id;
-        }
-
-        @Override
-        public String toString() {
-            return String.valueOf(id);
-        }
-
-        public Integer getId() {
-            return id;
-        }
-
-//        @Override
-//        public Boolean call() throws Exception {
-//            return true;
-//        }
     }
 
 
@@ -233,6 +166,99 @@ public class FileQueueTest {
             Assert.fail("there should be no expired items");
             throw new RuntimeException();
         }
+    }
+
+
+    static FileQueue.ProcessResult retry(FileQueueItem item, AtomicInteger processed, AtomicInteger retry) {
+        try {
+            TestRetryFileQueueItem retryFileQueueItem = (TestRetryFileQueueItem) item;
+            //logger.debug("found item "+ retryFileQueueItem.getId() +" try count "+retryFileQueueItem.getTryCount());
+            if (retryFileQueueItem.getTryCount() == RETRIES - 1) {
+                processed.incrementAndGet();
+                return FileQueue.ProcessResult.PROCESS_SUCCESS;
+            } else {
+                retry.incrementAndGet();
+
+                System.out.println(retryFileQueueItem.getTryCount()+" retry inc:"+retry.get());
+                return FileQueue.ProcessResult.PROCESS_FAIL_REQUEUE;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail(e.getMessage());
+            return FileQueue.ProcessResult.PROCESS_FAIL_REQUEUE;
+        }
+    }
+
+    static class TestRetryFileQueue extends FileQueue {
+
+        public TestRetryFileQueue() {
+
+        }
+
+        @Override
+        public Class getFileQueueItemClass() {
+            return TestRetryFileQueueItem.class;
+        }
+
+        @Override
+        public ProcessResult processFileQueueItem(FileQueueItem item)  {
+            return retry(item, processedTest2, retryTest2);
+        }
+
+        @Override
+        public void expiredItem(FileQueueItem item) {
+            Assert.fail("there should be no expired items");
+            throw new RuntimeException();
+        }
+    }
+
+
+    static class TestRetryFileQueue2 extends FileQueue {
+
+        public TestRetryFileQueue2() {
+
+        }
+
+        @Override
+        public Class getFileQueueItemClass() {
+            return TestRetryFileQueueItem.class;
+        }
+
+        @Override
+        public ProcessResult processFileQueueItem(FileQueueItem item)  {
+            return retry(item, processedTest3, retryTest3);
+        }
+
+        @Override
+        public void expiredItem(FileQueueItem item) {
+            Assert.fail("there should be no expired items");
+            throw new RuntimeException();
+        }
+    }
+
+
+
+     /* Implement File Queue */
+
+    static class TestRetryFileQueueItem extends FileQueueItem {
+
+        Integer id;
+
+        public TestRetryFileQueueItem() { }
+
+        private TestRetryFileQueueItem(Integer id) {
+            this.id = id;
+        }
+
+        @Override
+        public String toString() {
+            return String.valueOf(id);
+        }
+
+        public Integer getId() {
+            return id;
+        }
+
     }
 
 

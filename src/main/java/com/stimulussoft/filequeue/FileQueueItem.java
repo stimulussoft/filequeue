@@ -38,7 +38,7 @@ public abstract class FileQueueItem implements Serializable {
         return tryDate;
     }
 
-    protected void setTryDate(Date date) {
+    public void setTryDate(Date date) {
         this.tryDate = date;
     }
 
@@ -46,7 +46,11 @@ public abstract class FileQueueItem implements Serializable {
         return retryCount;
     }
 
-    protected void incTryCount() {
+    public void setTryCount(int tryCount) {
+        this.retryCount = tryCount;
+    }
+
+    public void incTryCount() {
         this.retryCount++;
     }
 

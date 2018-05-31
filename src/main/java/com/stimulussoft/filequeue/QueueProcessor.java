@@ -16,6 +16,8 @@ package com.stimulussoft.filequeue;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.stimulussoft.util.ThreadUtil;
 import org.slf4j.Logger;
@@ -23,10 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -41,7 +40,7 @@ import java.util.concurrent.*;
 class QueueProcessor<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueProcessor.class);
-    private static final ExecutorService executorService = new ThreadPoolExecutor(
+    private static final ExecutorService executorService = new ProcesssItemThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),
             Runtime.getRuntime().availableProcessors() * 8, 60L, TimeUnit.SECONDS,
             new SynchronousQueue<>(true),
@@ -49,7 +48,6 @@ class QueueProcessor<T> {
             new DelayRejectPolicy());
     private static final ScheduledExecutorService mvstoreCleanUP = Executors.newSingleThreadScheduledExecutor(
             ThreadUtil.getFlexibleThreadFactory("mvstore-cleanup", false));
-
     static {
         MoreExecutors.addDelayedShutdownHook(executorService, 60L, TimeUnit.SECONDS);
         MoreExecutors.addDelayedShutdownHook(mvstoreCleanUP, 60L, TimeUnit.SECONDS);
@@ -75,6 +73,7 @@ class QueueProcessor<T> {
 
 
     public static class Builder {
+
         private     Path queuePath;
         private     String queueName;
         private     Class type;
@@ -217,7 +216,9 @@ class QueueProcessor<T> {
             throw new IllegalStateException("file queue {" + getQueueBaseDir() + "} is not running");
         try {
             restorePolled.register();
-            executorService.execute(new ProcessItem<>(consumer, expiration, item, this));
+            try {
+                executorService.execute(new ProcessItem<>(consumer, expiration, item, this));
+            } catch (RuntimeException re) { /* task is already running */ }
         } catch (RejectedExecutionException | CancellationException cancel) {
             mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
         } finally {
@@ -237,11 +238,11 @@ class QueueProcessor<T> {
         return mvStoreQueue.size();
     }
 
-    private void retry(T item) throws IOException {
-        if (doRun)
-            submit(item);
-        else
-            mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
+    private void retry(T item) {
+        if (maxTries > 0) {
+            ((FileQueueItem) item).setTryDate(new Date());
+            ((FileQueueItem) item).incTryCount();
+        }
     }
 
     /**
@@ -272,15 +273,7 @@ class QueueProcessor<T> {
     }
 
     private boolean isTimeToRetry(T item, int retryDelay) {
-        Date tryDate = ((FileQueueItem) item).getTryDate();
-        Date newTryDate = new Date();
-        if (tryDate == null ||
-            dateDiff(((FileQueueItem) item).getTryDate(), newTryDate, retryDelayTimeUnit) > retryDelay) {
-                ((FileQueueItem) item).setTryDate(newTryDate);
-                if (maxTries > 0) ((FileQueueItem) item).incTryCount();
-                return true;
-        } else
-            return false;
+        return ((FileQueueItem) item).getTryDate() == null  || dateDiff(((FileQueueItem) item).getTryDate(), new Date(), retryDelayTimeUnit) > retryDelay;
     }
 
     private T deserialize(final byte[] data) {
@@ -299,6 +292,7 @@ class QueueProcessor<T> {
         private final Expiration<T> expiration;
         private final T item;
         private final QueueProcessor<T> queueProcessor;
+        private boolean pushback = false;
 
         ProcessItem(Consumer<T> consumer, Expiration<T> expiration, T item, QueueProcessor<T> queueProcessor) {
             this.consumer = consumer;
@@ -307,6 +301,19 @@ class QueueProcessor<T> {
             this.queueProcessor = queueProcessor;
         }
 
+        private void pushBackIfNeeded() {
+            if (isPushBack()) {
+                try {
+                    mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
+                } catch (Exception e1) {
+                    logger.error("failed to process item {" + item.toString() + "}", e1);
+                }
+            }
+        }
+
+        private void flagPush() { pushback = true; }
+        private boolean isPushBack() { return pushback; }
+
         @Override
         public void run() {
             try {
@@ -314,25 +321,36 @@ class QueueProcessor<T> {
                     if (queueProcessor.isNeedRetry(item)) {
                         if (queueProcessor.isTimeToRetry(item))
                             queueProcessor.retry(item);
-                        else
-                            mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
+                        flagPush();
                     } else {
                         if (expiration != null)
                             expiration.expire(item);
                     }
                 }
             } catch (InterruptedException e) {
-                try {
-                    mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
-                } catch (Exception e1) {
-                    logger.error("failed to process item {" + item.toString() + "}", e1);
-                } finally {
-                    Thread.currentThread().interrupt();
-                }
+                flagPush();
+                Thread.currentThread().interrupt();
             } catch (Exception e) {
                 logger.error("failed to process item {" + item.toString() + "}", e);
+            } finally {
+                pushBackIfNeeded();
             }
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null) return false;
+            if (getClass() != o.getClass()) return false;
+            ProcessItem p = (ProcessItem) o;
+            return Objects.equals(item.toString(), p.item.toString());
+        }
+
+        @Override
+        public int hashCode() {
+            return item.toString().hashCode();
+        }
+
     }
 
 
@@ -356,7 +374,6 @@ class QueueProcessor<T> {
                                 mvStoreQueue.push(toDeserialize);
                                 break;
                             }
-
                             final T item = deserialize(toDeserialize);
                             if (item == null) continue;
                             processingQueue.submit(item);
@@ -367,12 +384,11 @@ class QueueProcessor<T> {
                             restorePolled.arriveAndDeregister();
                         }
                     }
-                } catch (IOException io) {
+                } catch (Exception io) {
                     logger.error("Failed to process item.", io);
                 }
             }
         }
-
     }
 
     /**
@@ -433,6 +449,34 @@ class QueueProcessor<T> {
      * @return retry delay expiration
      */
     public Expiration getExpiration() { return expiration; }
+
+
+    public static class ProcesssItemThreadPoolExecutor extends ThreadPoolExecutor {
+        public ProcesssItemThreadPoolExecutor(int corePoolSize,
+                                              int maximumPoolSize,
+                                              long keepAliveTime,
+                                              TimeUnit unit,
+                                              BlockingQueue<Runnable> workQueue,
+                                              ThreadFactory threadFactory,
+                                              RejectedExecutionHandler handler) {
+            super(corePoolSize,maximumPoolSize,keepAliveTime,unit,workQueue,threadFactory,handler);
+        }
+
+        Set<Runnable> uniqueQueue = Sets.newConcurrentHashSet();
+
+        protected void beforeExecute(Thread t, Runnable r) {
+            if (!uniqueQueue.add(r))
+                throw new RuntimeException("task already running");
+            super.beforeExecute(t, r);
+        }
+
+        protected void afterExecute(Runnable r, Throwable t) {
+            uniqueQueue.remove(r);
+            super.afterExecute(r, t);
+        }
+
+    }
+
 
 
 }
