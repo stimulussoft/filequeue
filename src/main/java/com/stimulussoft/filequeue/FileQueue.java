@@ -319,6 +319,17 @@ public abstract class FileQueue {
         return 0;
     }
 
+    /**
+     * Set max queue size
+     *
+     * @param queue size
+     */
+
+    public void setMaxQueueSize(int queueSize) {
+        if (config != null)
+            config = config.maxQueueSize(queueSize);
+        permits.setMaxPermits(queueSize);
+    }
 
     public void release() {
         permits.release();
