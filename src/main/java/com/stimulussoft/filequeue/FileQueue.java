@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 2) Implement a class that extends FileQueue
  * a) implement getFileQueueClass to return class created in step 1) above
  * b) implement processFileQueueItem(FileQueueItem item) to perform actual processing work
- * 3) Call init(..) to initialize the filequeue
+ * 3) Call config() to configure filequeue
  * 4) Call startQueue() to start the filequeue
  * 5) Call stopQueue() to stop the filequeue processing
  * <p>
