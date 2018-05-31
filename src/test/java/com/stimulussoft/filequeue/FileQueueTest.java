@@ -1,15 +1,18 @@
 package com.stimulussoft.filequeue;
 
+import com.google.common.collect.Maps;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,8 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileQueueTest {
 
-    private static final int ROUNDS = 1;
-    private static final int RETRIES = 5;
+    private static final int ROUNDS = 20000;
+    private static final int RETRIES = 100;
     private static final int MAXRETRYDELAY = 64;
     private static final int RETRYDELAY = 1;
     private static final int MAXQUEUESIZE = 100;
@@ -29,13 +32,13 @@ public class FileQueueTest {
 
     private static AtomicInteger processedTest1 = new AtomicInteger(0);
     private static AtomicInteger producedTest1 = new AtomicInteger(0);
-    private static AtomicInteger retryTest1 = new AtomicInteger(0);
+    private static Map<String,AtomicInteger> retryTest1 = Maps.newConcurrentMap();
     private static AtomicInteger processedTest2 = new AtomicInteger(0);
     private static AtomicInteger producedTest2 = new AtomicInteger(0);
-    private static AtomicInteger retryTest2 = new AtomicInteger(0);
+    private static Map<String,AtomicInteger> retryTest2 = Maps.newConcurrentMap();
     private static AtomicInteger processedTest3 = new AtomicInteger(0);
     private static AtomicInteger producedTest3 = new AtomicInteger(0);
-    private static AtomicInteger retryTest3 = new AtomicInteger(0);
+    private static Map<String,AtomicInteger> retryTest3 = Maps.newConcurrentMap();
      /* Test Without Retries */
 
     @Test
@@ -77,7 +80,7 @@ public class FileQueueTest {
     @Test
     public void test3() throws Exception {
         String queueName = "test3";
-        Path db = setup("filequeue test with retries", queueName, producedTest3, processedTest3);
+        Path db = setup("filequeue test with retries and exponential delay", queueName, producedTest3, processedTest3);
         TestRetryFileQueue2 queue = new TestRetryFileQueue2();
         FileQueue.Config config = FileQueue.config().queueName(queueName).queuePath(db).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
                 .retryDelay(RETRYDELAY).retryDelayTimeUnit(RetryDelayTimeUnit)
@@ -112,15 +115,22 @@ public class FileQueueTest {
 
     /* Implement File Queue */
 
-    private void done(AtomicInteger produced, AtomicInteger processed, AtomicInteger retry, boolean retryEnabled) throws Exception {
+    private void done(AtomicInteger produced, AtomicInteger processed, Map<String,AtomicInteger> retries, boolean retryEnabled) throws Exception {
         while (processed.get() < ROUNDS) {
             Thread.sleep(1000);
         }
 
         System.out.println("processed: " + processed.get() + " produced: " + produced.get());
         Assert.assertEquals(processed.get(), produced.get());
-        System.out.println("actual retries:" + retry.get() + " max retries: "+RETRIES);
-        if (retryEnabled) Assert.assertEquals(RETRIES,retry.get());
+        if (retryEnabled) {
+            int r = 0;
+            for (AtomicInteger i : retries.values()) {
+                Assert.assertEquals(RETRIES, i.get());
+                r = r + i.get();
+            }
+            System.out.println("actual retries:" + r + " expected total retries: " + RETRIES * ROUNDS);
+            Assert.assertEquals(RETRIES * ROUNDS, r);
+        }
     }
 
     static class TestFileQueueItem extends FileQueueItem {
@@ -169,17 +179,21 @@ public class FileQueueTest {
     }
 
 
-    static FileQueue.ProcessResult retry(FileQueueItem item, AtomicInteger processed, AtomicInteger retry) {
+    static FileQueue.ProcessResult retry(FileQueueItem item, AtomicInteger processed, Map<String,AtomicInteger> retries) {
         try {
+            AtomicInteger itemTries;
+            synchronized(retries) {
+                itemTries = retries.get(item.toString());
+                if (itemTries == null) itemTries = new AtomicInteger(0);
+                itemTries.incrementAndGet();
+                retries.put(item.toString(),itemTries);
+            }
+
             TestRetryFileQueueItem retryFileQueueItem = (TestRetryFileQueueItem) item;
-            //logger.debug("found item "+ retryFileQueueItem.getId() +" try count "+retryFileQueueItem.getTryCount());
-            if (retryFileQueueItem.getTryCount() == RETRIES - 1) {
+            if (retryFileQueueItem.getTryCount() == RETRIES) {
                 processed.incrementAndGet();
                 return FileQueue.ProcessResult.PROCESS_SUCCESS;
             } else {
-                retry.incrementAndGet();
-
-                System.out.println(retryFileQueueItem.getTryCount()+" retry inc:"+retry.get());
                 return FileQueue.ProcessResult.PROCESS_FAIL_REQUEUE;
             }
         } catch (Exception e) {

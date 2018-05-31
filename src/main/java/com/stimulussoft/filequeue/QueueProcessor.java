@@ -17,7 +17,6 @@ package com.stimulussoft.filequeue;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.stimulussoft.util.ThreadUtil;
 import org.slf4j.Logger;
@@ -40,7 +39,7 @@ import java.util.concurrent.*;
 class QueueProcessor<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueProcessor.class);
-    private static final ExecutorService executorService = new ProcesssItemThreadPoolExecutor(
+    private static final ExecutorService executorService = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),
             Runtime.getRuntime().availableProcessors() * 8, 60L, TimeUnit.SECONDS,
             new SynchronousQueue<>(true),
@@ -216,9 +215,7 @@ class QueueProcessor<T> {
             throw new IllegalStateException("file queue {" + getQueueBaseDir() + "} is not running");
         try {
             restorePolled.register();
-            try {
-                executorService.execute(new ProcessItem<>(consumer, expiration, item, this));
-            } catch (RuntimeException re) { /* task is already running */ }
+            executorService.execute(new ProcessItem<>(consumer, expiration, item, this));
         } catch (RejectedExecutionException | CancellationException cancel) {
             mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
         } finally {
@@ -238,7 +235,7 @@ class QueueProcessor<T> {
         return mvStoreQueue.size();
     }
 
-    private void retry(T item) {
+    private void tryItem(T item) {
         if (maxTries > 0) {
             ((FileQueueItem) item).setTryDate(new Date());
             ((FileQueueItem) item).incTryCount();
@@ -258,7 +255,7 @@ class QueueProcessor<T> {
     private boolean isNeedRetry(T item) {
         if (maxTries <= 0) return true;
         FileQueueItem queueItem = (FileQueueItem) item;
-        return queueItem.getTryCount() < maxTries;
+        return queueItem.getTryCount() <= maxTries;
     }
 
     private boolean isTimeToRetry(T item) {
@@ -317,16 +314,8 @@ class QueueProcessor<T> {
         @Override
         public void run() {
             try {
-                if (!consumer.consume(item)) {
-                    if (queueProcessor.isNeedRetry(item)) {
-                        if (queueProcessor.isTimeToRetry(item))
-                            queueProcessor.retry(item);
-                        flagPush();
-                    } else {
-                        if (expiration != null)
-                            expiration.expire(item);
-                    }
-                }
+                queueProcessor.tryItem(item);
+                if (!consumer.consume(item)) flagPush();
             } catch (InterruptedException e) {
                 flagPush();
                 Thread.currentThread().interrupt();
@@ -376,7 +365,16 @@ class QueueProcessor<T> {
                             }
                             final T item = deserialize(toDeserialize);
                             if (item == null) continue;
-                            processingQueue.submit(item);
+
+                            if (isNeedRetry(item)) {
+                                if (isTimeToRetry(item))
+                                    processingQueue.submit(item);
+                                else
+                                    mvStoreQueue.push(toDeserialize);
+                            } else {
+                                if (expiration != null)
+                                    expiration.expire(item);
+                            }
                         } catch (IllegalStateException e) {
                             logger.error("Failed to process item.", e);
                             mvStoreQueue.push(toDeserialize);
@@ -450,32 +448,6 @@ class QueueProcessor<T> {
      */
     public Expiration getExpiration() { return expiration; }
 
-
-    public static class ProcesssItemThreadPoolExecutor extends ThreadPoolExecutor {
-        public ProcesssItemThreadPoolExecutor(int corePoolSize,
-                                              int maximumPoolSize,
-                                              long keepAliveTime,
-                                              TimeUnit unit,
-                                              BlockingQueue<Runnable> workQueue,
-                                              ThreadFactory threadFactory,
-                                              RejectedExecutionHandler handler) {
-            super(corePoolSize,maximumPoolSize,keepAliveTime,unit,workQueue,threadFactory,handler);
-        }
-
-        Set<Runnable> uniqueQueue = Sets.newConcurrentHashSet();
-
-        protected void beforeExecute(Thread t, Runnable r) {
-            if (!uniqueQueue.add(r))
-                throw new RuntimeException("task already running");
-            super.beforeExecute(t, r);
-        }
-
-        protected void afterExecute(Runnable r, Throwable t) {
-            uniqueQueue.remove(r);
-            super.afterExecute(r, t);
-        }
-
-    }
 
 
 

@@ -50,7 +50,7 @@ public abstract class FileQueueItem implements Serializable {
         this.retryCount = tryCount;
     }
 
-    public void incTryCount() {
+    public synchronized void incTryCount() {
         this.retryCount++;
     }
 
