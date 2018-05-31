@@ -16,7 +16,6 @@ package com.stimulussoft.filequeue;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.stimulussoft.util.ThreadUtil;
 import org.slf4j.Logger;

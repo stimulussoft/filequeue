@@ -57,6 +57,7 @@ public abstract class FileQueue {
     private QueueProcessor<FileQueueItem> transferQueue;
     private Config config;
     private final Expiration<FileQueueItem> fileQueueExpiration = this::expiredItem;
+    public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL}
 
     private final Consumer<FileQueueItem> fileQueueConsumer = item -> {
         try {
@@ -215,8 +216,8 @@ public abstract class FileQueue {
          * Set retry delay algorithm (FIXED or EXPONENTIAL)
          * @param  retryDelayAlgorithm            set to either fixed or exponential backoff
          */
-        public Config retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm retryDelayAlgorithm) {builder = builder.retryDelayAlgorithm(retryDelayAlgorithm); return this; }
-        public QueueProcessor.RetryDelayAlgorithm getRetryDelayAlgorithm() { return builder.getRetryDelayAlgorithm(); }
+        public Config retryDelayAlgorithm(RetryDelayAlgorithm retryDelayAlgorithm) {builder = builder.retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.valueOf(retryDelayAlgorithm.name())); return this; }
+        public RetryDelayAlgorithm getRetryDelayAlgorithm() { return RetryDelayAlgorithm.valueOf(builder.getRetryDelayAlgorithm().name()); }
 
         /**
          * Set retry delay consumer

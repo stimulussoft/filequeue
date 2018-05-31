@@ -96,7 +96,7 @@ public class FileQueueTest {
         TestRetryFileQueue3 queue = new TestRetryFileQueue3();
         FileQueue.Config config = FileQueue.config().queueName(queueName).queuePath(db).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
                 .retryDelay(RETRYDELAY).retryDelayTimeUnit(RetryDelayTimeUnit)
-                .retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.EXPONENTIAL).retryDelay(RETRYDELAY).maxRetryDelay(MAXRETRYDELAY).type(TestRetryFileQueueItem.class);
+                .retryDelayAlgorithm(FileQueue.RetryDelayAlgorithm.EXPONENTIAL).retryDelay(RETRYDELAY).maxRetryDelay(MAXRETRYDELAY).type(TestRetryFileQueueItem.class);
         queue.startQueue(config);
         for (int i = 0; i < ROUNDS; i++) {
             producedTest3.incrementAndGet();
@@ -114,7 +114,7 @@ public class FileQueueTest {
         TestExpireFileQueue queue = new TestExpireFileQueue();
         FileQueue.Config config = FileQueue.config().queueName(queueName).queuePath(db).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
                 .retryDelay(RETRYDELAY).retryDelayTimeUnit(RetryDelayTimeUnit)
-                .retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.EXPONENTIAL).retryDelay(RETRYDELAY)
+                .retryDelayAlgorithm(FileQueue.RetryDelayAlgorithm.EXPONENTIAL).retryDelay(RETRYDELAY)
                 .maxRetryDelay(MAXRETRYDELAY).type(TestRetryFileQueueItem.class);
         queue.startQueue(config);
         for (int i = 0; i < ROUNDS; i++) {
