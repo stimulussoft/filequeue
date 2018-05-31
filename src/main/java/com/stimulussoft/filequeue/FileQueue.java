@@ -77,7 +77,6 @@ public abstract class FileQueue {
 
     /**
      * Create @{@link FileQueue}.
-     * This method do not initialize the queue. Call init(..) to initialize the queue.
      */
 
     public FileQueue() {
@@ -118,7 +117,7 @@ public abstract class FileQueue {
     public synchronized void startQueue(Config config) throws IOException, IllegalStateException, IllegalArgumentException {
         if (!isStarted.get()) {
             this.config = config;
-            transferQueue = config.consumer(fileQueueConsumer).builder.build();
+            transferQueue = config.consumer(fileQueueConsumer).expiration(fileQueueExpiration).builder.build();
             permits.setMaxPermits(config.maxQueueSize);
             isStarted.set(true);
             shutdownHook = new ShutdownHook();
