@@ -104,13 +104,16 @@ public abstract class FileQueue {
 
     public abstract ProcessResult processFileQueueItem(FileQueueItem item) throws InterruptedException;
 
+    /**
+     * Override this method to receive notification when an item is expired.
+     * @param item  expired item
+     */
 
     public abstract void expiredItem(FileQueueItem item);
 
-
     /**
      * Start the queue engine
-     *
+     * @param config queue configuration. call config() to setup file queue configuration.
      * @throws IOException if error reading the db
      */
 
@@ -219,6 +222,9 @@ public abstract class FileQueue {
 
     }
 
+    /**
+     * Setup a file queue configuration for pass to startQueue()
+     */
 
     public static  Config config() {
         return new Config();
