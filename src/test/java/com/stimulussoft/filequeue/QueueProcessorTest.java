@@ -18,6 +18,7 @@ package com.stimulussoft.filequeue;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -33,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Tests internal QueueProcessor class. Rather extend FileQueue and RetryFileQueueItem.
  */
 
+@Ignore
 public class QueueProcessorTest {
 
 

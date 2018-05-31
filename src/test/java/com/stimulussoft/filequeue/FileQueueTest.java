@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileQueueTest {
 
-    private static final int ROUNDS = 20000;
+    private static final int ROUNDS = 2000;
     private static final int RETRIES = 100;
     private static final int MAXRETRYDELAY = 64;
     private static final int RETRYDELAY = 1;
