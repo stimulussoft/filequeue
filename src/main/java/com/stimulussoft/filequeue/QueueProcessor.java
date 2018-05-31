@@ -88,57 +88,69 @@ class QueueProcessor<T> {
          * @param queuePath              path to queue database
          */
         public Builder queuePath(Path queuePath) { this.queuePath = queuePath; return this; }
+        public Path getQueuePath() { return queuePath; }
         /**
          * Queue name
          * @param queueName              friendly name for the queue
          */
         public Builder queueName(String queueName) { this.queueName = queueName; return this; }
+        public String getQueueName() { return queueName; }
+
         /**
          * Type of queue item
          * @param type                   filequeueitem type
          */
         public Builder type(Class type) { this.type = type; return this; }
+        public Class getType() { return type; }
+
         /**
          * Maximum number of tries. Set to zero for infinite.
          * @param maxTries               maximum number of retries
          */
         public Builder maxTries(int maxTries) { this.maxTries = maxTries; return this; }
+        public int getMaxTries() { return maxTries; }
 
         /**
          * Set fixed delay between retries
          * @param retryDelay             delay between retries
          */
         public Builder retryDelay(int retryDelay) { this.retryDelay = retryDelay; return this; }
+        public int getRetryDelay() { return retryDelay; }
 
         /**
          * Set maximum delay between retries assuming exponential backoff enabled
          * @param maxRetryDelay            maximum delay between retries
          */
         public Builder maxRetryDelay(int maxRetryDelay) { this.maxRetryDelay = maxRetryDelay; return this; }
+        public int getMaxRetryDelay() { return maxRetryDelay; }
 
         /**
          * Set retry delay time unit
          * @param retryDelayTimeUnit           retry delay time unit
          */
         public Builder retryDelayTimeUnit(TimeUnit retryDelayTimeUnit) { this.retryDelayTimeUnit = retryDelayTimeUnit; return this; }
+        public TimeUnit getRetryDelayTimeUnit() { return retryDelayTimeUnit; }
 
         /**
          * Set retry delay algorithm (FIXED or EXPONENTIAL)
          * @param  retryDelayAlgorithm            set to either fixed or exponential backoff
          */
         public Builder retryDelayAlgorithm(RetryDelayAlgorithm retryDelayAlgorithm) { this.retryDelayAlgorithm = retryDelayAlgorithm; return this; }
+        public RetryDelayAlgorithm getRetryDelayAlgorithm() { return retryDelayAlgorithm; }
 
         /**
          * Set retry delay consumer
          * @param  consumer            retry delay consumer
          */
         public Builder consumer(Consumer consumer) { this.consumer = consumer; return this; }
+        public Consumer getConsumer() { return consumer; }
 
         /**
          * Set retry delay expiration
          * @param  expiration            retry delay expiration
          */
         public Builder expiration(Expiration expiration) { this.expiration = expiration; return this; }
+        public Expiration getExpiration() { return expiration; }
 
         public QueueProcessor build() throws IOException, IllegalStateException, IllegalArgumentException {
             return new QueueProcessor(this);

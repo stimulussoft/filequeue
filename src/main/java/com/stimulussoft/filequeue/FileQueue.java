@@ -56,6 +56,7 @@ public abstract class FileQueue {
     private int diskSpaceCheckDelayMsec = 20;
     private QueueProcessor<FileQueueItem> transferQueue;
     private Config config;
+    private final Expiration<FileQueueItem> fileQueueExpiration = this::expiredItem;
 
     private final Consumer<FileQueueItem> fileQueueConsumer = item -> {
         try {
@@ -72,8 +73,6 @@ public abstract class FileQueue {
             permits.release();
         }
     };
-
-    private final Expiration<FileQueueItem> fileQueueExpiration = this::expiredItem;
 
     /**
      * Create @{@link FileQueue}.
@@ -118,16 +117,24 @@ public abstract class FileQueue {
      */
 
     public synchronized void startQueue(Config config) throws IOException, IllegalStateException, IllegalArgumentException {
-        if (!isStarted.get()) {
-            this.config = config;
-            transferQueue = config.consumer(fileQueueConsumer).expiration(fileQueueExpiration).builder.build();
-            permits.setMaxPermits(config.maxQueueSize);
-            isStarted.set(true);
-            shutdownHook = new ShutdownHook();
-            Runtime.getRuntime().removeShutdownHook(shutdownHook);
-            Runtime.getRuntime().addShutdownHook(shutdownHook);
+        assert !isStarted.get();
+        this.config = config;
+        transferQueue = config.consumer(fileQueueConsumer).expiration(fileQueueExpiration).builder.build();
+        permits.setMaxPermits(config.maxQueueSize);
+        isStarted.set(true);
+        shutdownHook = new ShutdownHook();
+        Runtime.getRuntime().removeShutdownHook(shutdownHook);
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
+    }
 
-        }
+    /**
+     * Get currently active configuration.
+     * @return configuration
+     */
+
+    public Config getConfig() {
+        assert isStarted.get();
+        return config;
     }
 
     /**
@@ -156,13 +163,15 @@ public abstract class FileQueue {
          */
         
         public Config queuePath(Path queuePath) { builder = builder.queuePath(queuePath); return this; }
-        
+        public Path getQueuePath() { return builder.getQueuePath(); }
+
         /**
          * Queue name
          * @param queueName              friendly name for the queue
          */
         public  Config queueName(String queueName) { builder = builder.queueName(queueName); return this; }
-        
+        public String getQueueName() { return builder.getQueueName(); }
+
         /**
          * Type of queue item
          * @param type                   filequeueitem type
@@ -171,55 +180,64 @@ public abstract class FileQueue {
             assert type != FileQueueItem.class && FileQueueItem.class.isAssignableFrom(type) : "type must be a descendant of filequeue";
             builder = builder.type(type); return this;
         }
-        
+        public Class getType() { return builder.getType(); }
+
         /**
          * Maximum number of tries. Set to zero for infinite.
          * @param maxTries               maximum number of retries
          */
         public  Config maxTries(int maxTries) {builder = builder.maxTries(maxTries); return this; }
+        public int getMaxTries() { return builder.getMaxTries(); }
 
         /**
          * Set fixed delay between retries
          * @param retryDelay             delay between retries
          */
         public  Config retryDelay(int retryDelay) { builder = builder.retryDelay(retryDelay); return this; }
+        public int getRetryDelay() { return builder.getRetryDelay(); }
 
         /**
          * Set maximum delay between retries assuming exponential backoff enabled
          * @param maxRetryDelay            maximum delay between retries
          */
         public  Config maxRetryDelay(int maxRetryDelay) { builder = builder.maxRetryDelay(maxRetryDelay); return this; }
+        public int getMaxRetryDelay() { return builder.getMaxRetryDelay(); }
+
 
         /**
          * Set retry delay time unit
          * @param retryDelayTimeUnit           retry delay time unit
          */
         public  Config retryDelayTimeUnit(TimeUnit retryDelayTimeUnit) { builder = builder.retryDelayTimeUnit(retryDelayTimeUnit); return this; }
+        public TimeUnit getRetryDelayTimeUnit() { return builder.getRetryDelayTimeUnit(); }
 
         /**
          * Set retry delay algorithm (FIXED or EXPONENTIAL)
          * @param  retryDelayAlgorithm            set to either fixed or exponential backoff
          */
         public Config retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm retryDelayAlgorithm) {builder = builder.retryDelayAlgorithm(retryDelayAlgorithm); return this; }
+        public QueueProcessor.RetryDelayAlgorithm getRetryDelayAlgorithm() { return builder.getRetryDelayAlgorithm(); }
 
         /**
          * Set retry delay consumer
          * @param  consumer            retry delay consumer
          */
         private  Config consumer(Consumer consumer) {  builder = builder.consumer(consumer); return this; }
+        public Consumer getConsumer() { return builder.getConsumer(); }
 
         /**
          * Set retry delay expiration
          * @param  expiration            retry delay expiration
          */
         public  Config expiration(Expiration expiration) {builder = builder.expiration(expiration); return this; }
+        public Expiration getExpiration() { return builder.getExpiration(); }
 
         /**
          * Set max queue size
          * @param  maxQueueSize            maximum size of queue
          */
         public  Config maxQueueSize(int maxQueueSize) { this.maxQueueSize = maxQueueSize; return this; }
-
+        public int getMaxQueueSize() { return maxQueueSize; }
     }
 
     /**

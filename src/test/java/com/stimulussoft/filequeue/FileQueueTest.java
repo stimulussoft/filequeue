@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class FileQueueTest {
 
     private static final int ROUNDS = 20000;
-    private static final int RETRIES = 5;
+    private static final int RETRIES = 100;
     private static final int MAXRETRYDELAY = 64;
     private static final int RETRYDELAY = 1;
     private static final int MAXQUEUESIZE = 100;
@@ -50,6 +50,11 @@ public class FileQueueTest {
         TestFileQueue queue = new TestFileQueue();
         FileQueue.Config config = FileQueue.config().queueName(queueName).queuePath(db).type(TestFileQueueItem.class).maxQueueSize(MAXQUEUESIZE);
         queue.startQueue(config);
+
+        Assert.assertEquals(queue.getConfig().getQueueName(), queueName);
+        Assert.assertEquals(queue.getConfig().getQueuePath(), db);
+        Assert.assertEquals(queue.getConfig().getMaxQueueSize(), MAXQUEUESIZE);
+
         for (int i = 0; i < ROUNDS; i++) {
             producedTest1.incrementAndGet();
             queue.queueItem(new TestFileQueueItem(i));
@@ -70,6 +75,11 @@ public class FileQueueTest {
         FileQueue.Config config = FileQueue.config().queueName(queueName).queuePath(db).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
                                   .retryDelay(RETRYDELAY).retryDelayTimeUnit(RetryDelayTimeUnit).type(TestRetryFileQueueItem.class);
         queue.startQueue(config);
+
+        Assert.assertEquals(queue.getConfig().getMaxTries(), RETRIES);
+        Assert.assertEquals(queue.getConfig().getRetryDelay(), RETRYDELAY);
+        Assert.assertEquals(queue.getConfig().getRetryDelayTimeUnit(), RetryDelayTimeUnit);
+
         for (int i = 0; i < ROUNDS; i++) {
             producedTest2.incrementAndGet();
             queue.queueItem(new TestRetryFileQueueItem(i));
