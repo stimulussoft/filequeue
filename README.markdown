@@ -21,9 +21,8 @@ The steps for integration are as follows:
 
 Note: Build on maven central is outdated. Please checkout the source code from Git hub and run mvn install to build the library.
   
-  2. extend FileQueueItem
+  2. Extend FileQueueItem
   3. Extend FileQueue
-    1. implement getFileQueueClass to return class created in step 1) above
     2. implement processFileQueueItem(FileQueueItem item) to perform actual processing work
   4. Call config() to construct an appropriate configuration
   5. Call startQueue() to start the queue

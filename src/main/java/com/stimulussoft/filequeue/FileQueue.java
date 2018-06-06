@@ -211,6 +211,13 @@ public abstract class FileQueue {
         public int getPersistentRetryDelay() { return builder.getPersistentRetryDelay(); }
 
         /**
+         * Set  persistent retry delay time unit
+         * @param persistentRetryDelayTimeUnit  persistent retry delay timeunit
+         */
+        public  Config persistentRetryDelayTimeUnit(TimeUnit persistentRetryDelayTimeUnit) { builder = builder.persistentRetryDelayTimeUnit(persistentRetryDelayTimeUnit); return this; }
+        public TimeUnit getPersistentRetryDelayTimeUnit() { return builder.getPersistentRetryDelayTimeUnit(); }
+
+        /**
          * Set maximum delay between retries assuming exponential backoff enabled
          * @param maxRetryDelay            maximum delay between retries
          */
