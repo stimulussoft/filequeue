@@ -157,7 +157,13 @@ public abstract class FileQueue {
 
         private int maxQueueSize = Integer.MAX_VALUE;
         private QueueProcessor.Builder builder = QueueProcessor.builder();
-        
+
+        public Config(String queueName, Path queuePath, Class type) {
+            builder = builder.type(type).queueName(queueName).queuePath(queuePath);
+        }
+
+        public Config() { }
+
         /**
          * Queue path
          * @param queuePath             path to queue database
@@ -196,6 +202,13 @@ public abstract class FileQueue {
          */
         public  Config retryDelay(int retryDelay) { builder = builder.retryDelay(retryDelay); return this; }
         public int getRetryDelay() { return builder.getRetryDelay(); }
+
+        /**
+         * Set retry delay between retries from items in database (on disk)
+         * @param retryDelay             delay between retries
+         */
+        public  Config persistentRetryDelay(int retryDelay) { builder = builder.persistentRetryDelay(retryDelay); return this; }
+        public int getPersistentRetryDelay() { return builder.getPersistentRetryDelay(); }
 
         /**
          * Set maximum delay between retries assuming exponential backoff enabled
@@ -244,6 +257,10 @@ public abstract class FileQueue {
     /**
      * Setup a file queue configuration for pass to startQueue()
      */
+
+    public static  Config config(String queueName, Path queuePath, Class type) {
+        return new Config(queueName,queuePath,type);
+    }
 
     public static  Config config() {
         return new Config();

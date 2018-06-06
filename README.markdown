@@ -34,11 +34,12 @@ For API docs, refer to the file queue [JavaDoc](http://javadoc.io/doc/com.stimul
 Here's an example snippet of code showing the creation of the queue, a client sending pushing some messages and the consumption of the messages. 
 
     RetryFileQueue  queue = new RetryFileQueue();
-    RetryFileQueue.Config config = RetryFileQueue.config().queueName(queueName).queuePath(db)
-                              .type(TestRetryFileQueueItem.class).maxQueueSize(MAXQUEUESIZE)
+    RetryFileQueue.Config config = RetryFileQueue.config(queueName,queuePath,TestRetryFileQueueItem.class)
+                              .maxQueueSize(MAXQUEUESIZE)
                               .retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.EXPONENTIAL)
                               .retryDelay(RETRYDELAY).maxRetryDelay(MAXRETRYDELAY)
                               .maxRetries(0);
+                              .persistentRetryDelay(PERSISTENTRETRYDELAY);
     queue.startQueue(config);
     for (int i = 0; i < ROUNDS; i++) {
         queue.queueItem(new RetryFileQueueItem(i));
@@ -55,14 +56,7 @@ The FileQueue itself.
 
     static class RetryFileQueue extends FileQueue {
 
-        public RetryFileQueue() {
-
-        }
-
-        @Override
-        public Class getFileQueueItemClass() {
-            return RetryFileQueueItem.class;
-        }
+        public RetryFileQueue() { }
 
         @Override
         public ProcessResult processFileQueueItem(FileQueueItem item) throws InterruptedException {

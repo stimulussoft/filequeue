@@ -26,7 +26,7 @@ public class FileQueueTest {
     private static final int ROUNDS = 2000;
     private static final int RETRIES = 100;
     private static final int MAXRETRYDELAY = 64;
-    private static final int RETRYDELAY = 1;
+    private static final int RETRYDELAY = 60;
     private static final int MAXQUEUESIZE = 100;
     private static final TimeUnit RetryDelayTimeUnit = TimeUnit.MILLISECONDS;
 
@@ -48,7 +48,7 @@ public class FileQueueTest {
         String queueName = "test1";
         Path db = setup("filequeue test without retries", queueName, producedTest1, processedTest1);
         TestFileQueue queue = new TestFileQueue();
-        FileQueue.Config config = FileQueue.config().queueName(queueName).queuePath(db).type(TestFileQueueItem.class).maxQueueSize(MAXQUEUESIZE);
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class).maxQueueSize(MAXQUEUESIZE).persistentRetryDelay(1);
         queue.startQueue(config);
 
         Assert.assertEquals(queue.getConfig().getQueueName(), queueName);
@@ -72,8 +72,8 @@ public class FileQueueTest {
         String queueName = "test2";
         Path db = setup("filequeue test with retries", queueName, producedTest2, processedTest2);
         TestRetryFileQueue2 queue = new TestRetryFileQueue2();
-        FileQueue.Config config = FileQueue.config().queueName(queueName).queuePath(db).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
-                                  .retryDelay(RETRYDELAY).retryDelayTimeUnit(RetryDelayTimeUnit).type(TestRetryFileQueueItem.class);
+        FileQueue.Config config = FileQueue.config(queueName,db,TestRetryFileQueueItem.class).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
+                                  .retryDelay(RETRYDELAY).retryDelayTimeUnit(RetryDelayTimeUnit).persistentRetryDelay(1);
         queue.startQueue(config);
 
         Assert.assertEquals(queue.getConfig().getMaxTries(), RETRIES);
