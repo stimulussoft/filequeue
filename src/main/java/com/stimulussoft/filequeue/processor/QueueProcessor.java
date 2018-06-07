@@ -12,11 +12,13 @@
  * limitations under the License.
  */
 
-package com.stimulussoft.filequeue;
+package com.stimulussoft.filequeue.processor;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.stimulussoft.filequeue.FileQueueItem;
+import com.stimulussoft.filequeue.store.MVStoreQueue;
 import com.stimulussoft.util.ThreadUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +37,7 @@ import java.util.concurrent.*;
  */
 
 
-class QueueProcessor<T> {
+public class QueueProcessor<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueProcessor.class);
     private static final ThreadPoolExecutor executorService = new ThreadPoolExecutor(
@@ -64,12 +66,12 @@ class QueueProcessor<T> {
     private volatile boolean doRun = true;
     private final int maxTries;
     private final int retryDelay;
-    private final int persistentRetryDelay;
+    private final int persistRetryDelay;
     private final int maxRetryDelay;
     private final Path queuePath;
     private final String queueName;
-    private final TimeUnit retryDelayTimeUnit;
-    private final TimeUnit persistentRetryDelayTimeUnit;
+    private final TimeUnit retryDelayUnit;
+    private final TimeUnit persistRetryDelayUnit;
     private final RetryDelayAlgorithm retryDelayAlgorithm;
 
 
@@ -80,10 +82,10 @@ class QueueProcessor<T> {
         private     Class type;
         private     int maxTries                = 0;
         private     int retryDelay              = 1;
-        private     int persistentRetryDelay            = 0;
+        private     int persistRetryDelay            = 0;
         private     int maxRetryDelay           = 1;
-        private     TimeUnit retryDelayTimeUnit = TimeUnit.SECONDS;
-        private     TimeUnit persistentRetryDelayTimeUnit = TimeUnit.SECONDS;
+        private     TimeUnit retryDelayUnit = TimeUnit.SECONDS;
+        private     TimeUnit persistRetryDelayUnit = TimeUnit.SECONDS;
         private     Consumer consumer;
         private     Expiration expiration;
         private     RetryDelayAlgorithm retryDelayAlgorithm =  RetryDelayAlgorithm.FIXED;
@@ -144,24 +146,24 @@ class QueueProcessor<T> {
         /**
          * Set delay between retries when processing items from queue database (on disk). Items are only put on disk
          * when the in-memory-processing-queue is full
-         * @param persistentRetryDelay   maximum delay between retries for items on disk
+         * @param persistRetryDelay   maximum delay between retries for items on disk
          */
-        public Builder persistentRetryDelay(int persistentRetryDelay) { this.persistentRetryDelay = persistentRetryDelay; return this; }
-        public int getPersistentRetryDelay() { return persistentRetryDelay; }
+        public Builder persistRetryDelay(int persistRetryDelay) { this.persistRetryDelay = persistRetryDelay; return this; }
+        public int getPersistRetryDelay() { return persistRetryDelay; }
 
         /**
          * Set persistent retry delay time unit
-         * @param persistentRetryDelayTimeUnit           persistent retry delay time unit
+         * @param persistRetryDelayUnit           persistent retry delay time unit
          */
-        public Builder persistentRetryDelayTimeUnit(TimeUnit persistentRetryDelayTimeUnit) { this.persistentRetryDelayTimeUnit = persistentRetryDelayTimeUnit; return this; }
-        public TimeUnit getPersistentRetryDelayTimeUnit() { return persistentRetryDelayTimeUnit; }
+        public Builder persistRetryDelayUnit(TimeUnit persistRetryDelayUnit) { this.persistRetryDelayUnit = persistRetryDelayUnit; return this; }
+        public TimeUnit getPersistRetryDelayUnit() { return persistRetryDelayUnit; }
 
         /**
          * Set retry delay time unit
-         * @param retryDelayTimeUnit           retry delay time unit
+         * @param retryDelayUnit           retry delay time unit
          */
-        public Builder retryDelayTimeUnit(TimeUnit retryDelayTimeUnit) { this.retryDelayTimeUnit = retryDelayTimeUnit; return this; }
-        public TimeUnit getRetryDelayTimeUnit() { return retryDelayTimeUnit; }
+        public Builder retryDelayUnit(TimeUnit retryDelayUnit) { this.retryDelayUnit = retryDelayUnit; return this; }
+        public TimeUnit getRetryDelayUnit() { return retryDelayUnit; }
 
         /**
          * Set retry delay algorithm (FIXED or EXPONENTIAL)
@@ -213,35 +215,35 @@ class QueueProcessor<T> {
         objectMapper = createObjectMapper();
         if (!objectMapper.canSerialize(builder.type)) throw new IllegalArgumentException("The given type is not serializable. it cannot be serialized by jackson");
 
-        this.queueName = builder.queueName;
-        this.queuePath = builder.queuePath;
-        this.consumer = builder.consumer;
-        this.expiration = builder.expiration;
-        this.type = builder.type;
-        this.maxTries = builder.maxTries;
-        this.retryDelay = builder.retryDelay;
-        this.retryDelayTimeUnit = builder.retryDelayTimeUnit;
-        this.maxRetryDelay = builder.maxRetryDelay;
-        this.retryDelayAlgorithm = builder.retryDelayAlgorithm;
-        mvStoreQueue = new MVStoreQueue(builder.queuePath, builder.queueName);
-        if (builder.persistentRetryDelay<=0)
-            this.persistentRetryDelay = retryDelay <= 1 ? 1 : retryDelay / 2;
+        this.queueName      = builder.queueName;
+        this.queuePath      = builder.queuePath;
+        this.consumer       = builder.consumer;
+        this.expiration     = builder.expiration;
+        this.type           = builder.type;
+        this.maxTries       = builder.maxTries;
+        this.retryDelay     = builder.retryDelay;
+        this.retryDelayUnit = builder.retryDelayUnit;
+        this.maxRetryDelay  = builder.maxRetryDelay;
+        this.retryDelayAlgorithm    = builder.retryDelayAlgorithm;
+        mvStoreQueue                = new MVStoreQueue(builder.queuePath, builder.queueName);
+        if (builder.persistRetryDelay<=0)
+            this.persistRetryDelay  = retryDelay <= 1 ? 1 : retryDelay / 2;
         else
-            this.persistentRetryDelay = builder.persistentRetryDelay;
-        this.persistentRetryDelayTimeUnit = builder.persistentRetryDelayTimeUnit;
-        cleanupTask = Optional.of(mvstoreCleanUP.scheduleWithFixedDelay(new MVStoreCleaner(this), 0, persistentRetryDelay, retryDelayTimeUnit));
+            this.persistRetryDelay  = builder.persistRetryDelay;
+        this.persistRetryDelayUnit  = builder.persistRetryDelayUnit;
+        cleanupTask = Optional.of(mvstoreCleanUP.scheduleWithFixedDelay(new MVStoreCleaner(this), 0, persistRetryDelay, retryDelayUnit));
     }
 
     /**
      * Get a diff between two dates
      * @param date1 the oldest date
      * @param date2 the newest date
-     * @param timeUnit the unit in which you want the diff
+     * @param unit the unit in which you want the diff
      * @return the diff value, in the provided unit
      */
-    private static long dateDiff(Date date1, Date date2, TimeUnit timeUnit) {
+    private static long dateDiff(Date date1, Date date2, TimeUnit unit) {
         long diffInMillies = date2.getTime() - date1.getTime();
-        return timeUnit.convert(diffInMillies,TimeUnit.MILLISECONDS);
+        return unit.convert(diffInMillies,TimeUnit.MILLISECONDS);
     }
 
 
@@ -288,10 +290,9 @@ class QueueProcessor<T> {
     }
 
     private void tryItem(T item) {
-        if (maxTries > 0) {
             ((FileQueueItem) item).setTryDate(new Date());
             ((FileQueueItem) item).incTryCount();
-        }
+          //  System.out.println("try count "+((FileQueueItem) item).getTryCount());
     }
 
     /**
@@ -307,7 +308,7 @@ class QueueProcessor<T> {
     private boolean isNeedRetry(T item) {
         if (maxTries <= 0) return true;
         FileQueueItem queueItem = (FileQueueItem) item;
-        return queueItem.getTryCount() <= maxTries;
+        return queueItem.getTryCount() < maxTries;
     }
 
     private boolean isTimeToRetry(T item) {
@@ -322,7 +323,7 @@ class QueueProcessor<T> {
     }
 
     private boolean isTimeToRetry(T item, int retryDelay) {
-        return ((FileQueueItem) item).getTryDate() == null  || dateDiff(((FileQueueItem) item).getTryDate(), new Date(), retryDelayTimeUnit) > retryDelay;
+        return ((FileQueueItem) item).getTryDate() == null  || dateDiff(((FileQueueItem) item).getTryDate(), new Date(), retryDelayUnit) > retryDelay;
     }
 
     private T deserialize(final byte[] data) {
@@ -367,7 +368,8 @@ class QueueProcessor<T> {
         public void run() {
             try {
                 queueProcessor.tryItem(item);
-                if (!consumer.consume(item)) flagPush();
+                if (consumer.consume(item)!=Consumer.Result.FAIL_NOQUEUE)
+                    flagPush();
             } catch (InterruptedException e) {
                 flagPush();
                 Thread.currentThread().interrupt();
@@ -486,7 +488,7 @@ class QueueProcessor<T> {
      * Get retry delay time unit
      * @return retry delay time unit
      */
-    public TimeUnit getRetryDelayTimeUnit() { return retryDelayTimeUnit; }
+    public TimeUnit getRetryDelayUnit() { return retryDelayUnit; }
 
     /**
      * Get retry delay algorithm (FIXED or EXPONENTIAL)
@@ -504,12 +506,12 @@ class QueueProcessor<T> {
      * Get delay between processing items in queue database (on disk).
      * @return persistent retry delay
      */
-    public int getPersistentRetryDelay() { return maxRetryDelay; }
+    public int getPersistRetryDelay() { return persistRetryDelay; }
 
     /**
      * Get persistent retry delay time unit
      * @return cleanup delay time unit
      */
-    public TimeUnit getPersistentRetryDelayTimeUnit() { return retryDelayTimeUnit; }
+    public TimeUnit getPersistRetryDelayUnit() { return retryDelayUnit; }
 
 }

@@ -31,8 +31,10 @@ import java.util.Date;
 
 public abstract class FileQueueItem implements Serializable {
 
-    private int retryCount;
+    private int retryCount = 0;
     private Date tryDate;
+
+    public FileQueueItem() { }
 
     public Date getTryDate() {
         return tryDate;
@@ -52,6 +54,7 @@ public abstract class FileQueueItem implements Serializable {
 
     public synchronized void incTryCount() {
         this.retryCount++;
+        if (retryCount<0) retryCount = 0; // to cater for overflow
     }
 
     public abstract String toString();

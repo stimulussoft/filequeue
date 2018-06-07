@@ -21,29 +21,26 @@ The steps for integration are as follows:
 
 Note: Build on maven central is outdated. Please checkout the source code from Git hub and run mvn install to build the library.
   
-  2. Extend FileQueueItem
-  3. Extend FileQueue
-    2. implement processFileQueueItem(FileQueueItem item) to perform actual processing work
+  2. Extend Consumer<FileQueueItem> and implement consume(FileQueueItem) to perform actual processing work.
+  3. Create a new FileQueue object
   4. Call config() to construct an appropriate configuration
   5. Call startQueue() to start the queue
   6. Call stopQueue() to stop the queue processing
 
-For API docs, refer to the file queue [JavaDoc](http://javadoc.io/doc/com.stimulussoft/filequeue/1.0.4).
+For API docs, run Javadoc on the source code. The linked [JavaDoc](http://javadoc.io/doc/com.stimulussoft/filequeue/1.0.4) is outdated.
 
 Here's an example snippet of code showing the creation of the queue, a client sending pushing some messages and the consumption of the messages. 
 
-    RetryFileQueue  queue = new RetryFileQueue();
-    RetryFileQueue.Config config = RetryFileQueue.config(queueName,queuePath,TestRetryFileQueueItem.class)
+    FileQueue queue = FileQueue.fileQueue();
+    RetryFileQueue.Config config = RetryFileQueue.config(queueName,queuePath,TestRetryFileQueueItem.class, new RetryConsumer())
                               .maxQueueSize(MAXQUEUESIZE)
                               .retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.EXPONENTIAL)
                               .retryDelay(RETRYDELAY).maxRetryDelay(MAXRETRYDELAY)
                               .maxRetries(0);
-                              .persistentRetryDelay(PERSISTENTRETRYDELAY);
+                              .persistRetryDelay(PERSISTENTRETRYDELAY);
     queue.startQueue(config);
-    for (int i = 0; i < ROUNDS; i++) {
+    for (int i = 0; i < ROUNDS; i++)
         queue.queueItem(new RetryFileQueueItem(i));
-    }
-
     // when finished call stopQueue
     queue.stopQueue();
 
@@ -51,24 +48,24 @@ In the above example, file queue retry policy is configured for exponential back
 
 The FileQueue itself.
 
-    import com.stimulussoft.filequeue.*;
+    import com.stimulussoft.filequeue.processor.*;
 
-    static class RetryFileQueue extends FileQueue {
+    static class RetryConsumer extends Consumer<FileQueueItem> {
 
         public RetryFileQueue() { }
 
         @Override
-        public ProcessResult processFileQueueItem(FileQueueItem item) throws InterruptedException {
+        public Result consume(FileQueueItem item) throws InterruptedException {
             try {
                 TestRetryFileQueueItem retryFileQueueItem = (TestRetryFileQueueItem) item;
                 if (retryFileQueueItem.getTryCount() == RETRIES -1 ) {
                     processedTest2.incrementAndGet();
-                    return ProcessResult.PROCESS_SUCCESS;
+                    return Result.SUCCESS;
                 }
-                return ProcessResult.PROCESS_FAIL_REQUEUE;
+                return Result.FAIL_REQUEUE;
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
-                return ProcessResult.PROCESS_FAIL_NOQUEUE;
+                return Result.FAIL_NOQUEUE;
             }
         }
     }

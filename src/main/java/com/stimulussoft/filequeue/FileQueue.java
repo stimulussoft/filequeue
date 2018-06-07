@@ -14,6 +14,9 @@
 
 package com.stimulussoft.filequeue;
 import com.google.common.annotations.VisibleForTesting;
+import com.stimulussoft.filequeue.processor.Consumer;
+import com.stimulussoft.filequeue.processor.Expiration;
+import com.stimulussoft.filequeue.processor.QueueProcessor;
 import com.stimulussoft.util.AdjustableSemaphore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,12 +34,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * persistent, if the program is quit and started again, it will begin where it left off. Refer to
  * <a href="https://github.com/stimulussoft/filequeue">filequeue github page</a> for more info.
  * <p>
- * 1) Implement FileQueueItem or extend RetryQueueItem (for retry support)
- * 2) Implement a class that extends FileQueue
- * a) implement getFileQueueClass to return class created in step 1) above
- * b) implement processFileQueueItem(FileQueueItem item) to perform actual processing work
+ * 1) Implement a Jackson serialization POJO by extending FileQueueItem
+ * 2) Implement a consumer class that extends Consumer<FileQueueItem>
+ * b) implement consume(FileQueueItem item) to perform actual processing work
  * 3) Call config() to configure filequeue
- * 4) Call startQueue() to start the filequeue
+ * 4) Call startQueue(config) to start the filequeue
  * 5) Call stopQueue() to stop the filequeue processing
  * <p>
  * To see example, refer to com.stimulussoft.filequeue.FileQueueTest
@@ -45,10 +47,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author Valentin Popov (Stimulus Software)
  */
 
-public abstract class FileQueue {
+public final class FileQueue {
 
     private static final long fiftyMegs = 50L * 1024L * 1024L;
-    protected Logger logger = LoggerFactory.getLogger("com.stimulussoft.archiva");
+    public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL}
+
+    private Logger logger = LoggerFactory.getLogger("com.stimulussoft");
     private ShutdownHook shutdownHook;
     private final AtomicBoolean isStarted = new AtomicBoolean();
     private final AdjustableSemaphore permits = new AdjustableSemaphore();
@@ -56,24 +60,9 @@ public abstract class FileQueue {
     private int diskSpaceCheckDelayMsec = 20;
     private QueueProcessor<FileQueueItem> transferQueue;
     private Config config;
-    private final Expiration<FileQueueItem> fileQueueExpiration = this::expiredItem;
-    public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL}
 
-    private final Consumer<FileQueueItem> fileQueueConsumer = item -> {
-        try {
-            if (!isStarted.get())
-                return false;
-            ProcessResult result = processFileQueueItem(item);
-            switch (result) {
-                case PROCESS_FAIL_REQUEUE:
-                    return false;
-                default:
-                    return true;
-            }
-        } finally {
-            permits.release();
-        }
-    };
+
+
 
     /**
      * Create @{@link FileQueue}.
@@ -82,35 +71,6 @@ public abstract class FileQueue {
     public FileQueue() {
     }
 
-
-    /**
-     * Override this method to return a custom FileQueueItem.class.
-     * The FileQueueItem class is a must be serializable using Jackson JSON.
-     *
-     * @return filequeueitem class
-     */
-
-    public abstract Class getFileQueueItemClass();
-
-    /**
-     * Override this method for processing of filequeue items.
-     * This method performs the work of processing an item in the queue.
-     * It is called when there is a queue item available for processing.
-     *
-     * @param item item for queuing
-     * @return process result
-     * @throws InterruptedException if processing was interrupted due to shutdown
-     */
-
-    public abstract ProcessResult processFileQueueItem(FileQueueItem item) throws InterruptedException;
-
-    /**
-     * Override this method to receive notification when an item is expired.
-     * @param item  expired item
-     */
-
-    public abstract void expiredItem(FileQueueItem item);
-
     /**
      * Start the queue engine
      * @param config queue configuration. call config() to setup file queue configuration.
@@ -118,9 +78,9 @@ public abstract class FileQueue {
      */
 
     public synchronized void startQueue(Config config) throws IOException, IllegalStateException, IllegalArgumentException {
-        assert !isStarted.get();
+        if (isStarted.get()) throw new IllegalStateException("already started");
         this.config = config;
-        transferQueue = config.consumer(fileQueueConsumer).expiration(fileQueueExpiration).builder.build();
+        transferQueue = config.builder.consumer(fileQueueConsumer).build();
         permits.setMaxPermits(config.maxQueueSize);
         isStarted.set(true);
         shutdownHook = new ShutdownHook();
@@ -128,13 +88,24 @@ public abstract class FileQueue {
         Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 
+    // this class is neeeded to release permit after processing an item
+
+    private final Consumer<FileQueueItem> fileQueueConsumer = item -> {
+        try {
+            return config.getConsumer().consume(item);
+        } finally {
+            permits.release();
+        }
+    };
+
+
     /**
      * Get currently active configuration.
      * @return configuration
      */
 
-    public Config getConfig() {
-        assert isStarted.get();
+    public Config getConfig() throws IllegalStateException {
+        if (!isStarted.get()) throw new IllegalStateException("already started");
         return config;
     }
 
@@ -156,10 +127,13 @@ public abstract class FileQueue {
     public static class Config {
 
         private int maxQueueSize = Integer.MAX_VALUE;
+        private Consumer consumer;
+
         private QueueProcessor.Builder builder = QueueProcessor.builder();
 
-        public Config(String queueName, Path queuePath, Class type) {
+        public Config(String queueName, Path queuePath, Class type, Consumer consumer) {
             builder = builder.type(type).queueName(queueName).queuePath(queuePath);
+            this.consumer = consumer;
         }
 
         public Config() { }
@@ -168,7 +142,6 @@ public abstract class FileQueue {
          * Queue path
          * @param queuePath             path to queue database
          */
-        
         public Config queuePath(Path queuePath) { builder = builder.queuePath(queuePath); return this; }
         public Path getQueuePath() { return builder.getQueuePath(); }
 
@@ -183,8 +156,9 @@ public abstract class FileQueue {
          * Type of queue item
          * @param type                   filequeueitem type
          */
-        public Config type(Class type) {
-            assert type != FileQueueItem.class && FileQueueItem.class.isAssignableFrom(type) : "type must be a descendant of filequeue";
+        public Config type(Class type) throws IllegalArgumentException {
+            if (type == FileQueueItem.class || !FileQueueItem.class.isAssignableFrom(type)) 
+                throw new IllegalArgumentException("type must be a subclass of filequeueitem");
             builder = builder.type(type); return this;
         }
         public Class getType() { return builder.getType(); }
@@ -207,15 +181,15 @@ public abstract class FileQueue {
          * Set retry delay between retries from items in database (on disk)
          * @param retryDelay             delay between retries
          */
-        public  Config persistentRetryDelay(int retryDelay) { builder = builder.persistentRetryDelay(retryDelay); return this; }
-        public int getPersistentRetryDelay() { return builder.getPersistentRetryDelay(); }
+        public  Config persistRetryDelay(int retryDelay) { builder = builder.persistRetryDelay(retryDelay); return this; }
+        public int getPersistRetryDelay() { return builder.getPersistRetryDelay(); }
 
         /**
-         * Set  persistent retry delay time unit
-         * @param persistentRetryDelayTimeUnit  persistent retry delay timeunit
+         * Set  persist retry delay time unit
+         * @param persistRetryDelayUnit  persist retry delay timeunit
          */
-        public  Config persistentRetryDelayTimeUnit(TimeUnit persistentRetryDelayTimeUnit) { builder = builder.persistentRetryDelayTimeUnit(persistentRetryDelayTimeUnit); return this; }
-        public TimeUnit getPersistentRetryDelayTimeUnit() { return builder.getPersistentRetryDelayTimeUnit(); }
+        public  Config persistRetryDelayUnit(TimeUnit persistRetryDelayUnit) { builder = builder.persistRetryDelayUnit(persistRetryDelayUnit); return this; }
+        public TimeUnit getPersistRetryDelayUnit() { return builder.getPersistRetryDelayUnit(); }
 
         /**
          * Set maximum delay between retries assuming exponential backoff enabled
@@ -227,10 +201,10 @@ public abstract class FileQueue {
 
         /**
          * Set retry delay time unit
-         * @param retryDelayTimeUnit           retry delay time unit
+         * @param retryDelayUnit           retry delay time unit
          */
-        public  Config retryDelayTimeUnit(TimeUnit retryDelayTimeUnit) { builder = builder.retryDelayTimeUnit(retryDelayTimeUnit); return this; }
-        public TimeUnit getRetryDelayTimeUnit() { return builder.getRetryDelayTimeUnit(); }
+        public  Config retryDelayUnit(TimeUnit retryDelayUnit) { builder = builder.retryDelayUnit(retryDelayUnit); return this; }
+        public TimeUnit getRetryDelayUnit() { return builder.getRetryDelayUnit(); }
 
         /**
          * Set retry delay algorithm (FIXED or EXPONENTIAL)
@@ -243,14 +217,17 @@ public abstract class FileQueue {
          * Set retry delay consumer
          * @param  consumer            retry delay consumer
          */
-        private  Config consumer(Consumer consumer) {  builder = builder.consumer(consumer); return this; }
-        public Consumer getConsumer() { return builder.getConsumer(); }
+        public Config consumer(Consumer<FileQueueItem> consumer) {
+            this.consumer = consumer; return this;
+        }
+
+        public Consumer getConsumer() { return consumer; }
 
         /**
          * Set retry delay expiration
          * @param  expiration            retry delay expiration
          */
-        public  Config expiration(Expiration expiration) {builder = builder.expiration(expiration); return this; }
+        public  Config expiration(Expiration<FileQueueItem> expiration) {builder = builder.expiration(expiration); return this; }
         public Expiration getExpiration() { return builder.getExpiration(); }
 
         /**
@@ -259,18 +236,15 @@ public abstract class FileQueue {
          */
         public  Config maxQueueSize(int maxQueueSize) { this.maxQueueSize = maxQueueSize; return this; }
         public int getMaxQueueSize() { return maxQueueSize; }
+
     }
 
     /**
      * Setup a file queue configuration for pass to startQueue()
      */
 
-    public static  Config config(String queueName, Path queuePath, Class type) {
-        return new Config(queueName,queuePath,type);
-    }
-
-    public static  Config config() {
-        return new Config();
+    public static  Config config(String queueName, Path queuePath, Class type, Consumer consumer) {
+        return new Config(queueName, queuePath, type, consumer);
     }
 
     /**
@@ -284,12 +258,7 @@ public abstract class FileQueue {
      * @throws InterruptedException queuing was interrupted due to shutdown
      */
 
-    public void queueItem(final FileQueueItem fileQueueItem, boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
-
-        assert fileQueueItem != null;
-        assert acquireWaitUnit != null;
-        assert acquireWait >= 0;
-
+    public void queueItem(final FileQueueItem fileQueueItem, boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
         ready(block, acquireWait, acquireWaitUnit);
         queueItem(fileQueueItem);
     }
@@ -302,11 +271,11 @@ public abstract class FileQueue {
      * @throws IOException if the item could not be serialized
      */
     @VisibleForTesting
-    public void queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException {
+    public void queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException, IllegalStateException {
 
-        assert fileQueueItem != null;
-        assert isStarted.get();
-
+        if (fileQueueItem == null) throw new IllegalArgumentException("filequeue item cannot be null");
+        if (!isStarted.get()) throw new IllegalStateException("queue not started");
+        
         try {
             transferQueue.submit(fileQueueItem);
             // mvstore throws a null ptr exception when out of disk space
@@ -336,17 +305,15 @@ public abstract class FileQueue {
      * @return no items in the queue
      */
 
-    public long getQueueSize() {
-        if (transferQueue != null) {
-            return transferQueue.size();
-        }
-        return 0;
+    public long getQueueSize() throws IllegalStateException {
+        if (!isStarted.get()) throw new IllegalStateException("queue not started");
+        return transferQueue.size();
     }
 
     /**
      * Set max queue size
      *
-     * @param queue size
+     * @param queueSize size of queue
      */
 
     public void setMaxQueueSize(int queueSize) {
@@ -368,12 +335,12 @@ public abstract class FileQueue {
      * @throws InterruptedException thrown if waiting was interrupted due to shutdown
      * @throws IOException thrown if there is not enough free space or the queue is full
      */
-    protected void ready(boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
+    public void ready(boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
 
-        assert acquireWaitUnit != null;
-        assert acquireWait >= 0;
-        assert isStarted.get();
-
+        if (acquireWait < 0) throw new IllegalArgumentException("acquire wait must be greater than zero");
+        if (acquireWaitUnit == null) throw new IllegalArgumentException("acquire wait until cannot be null");
+        if (!isStarted.get()) throw new IllegalStateException("queue not started");
+        
         long minFreeSpace = (long) minFreeSpaceMb * 1024L * 1024L;
 
         if (block) {
@@ -461,20 +428,18 @@ public abstract class FileQueue {
     }
 
 
-    public enum ProcessResult {
-        PROCESS_SUCCESS, /* process was successful */
-        PROCESS_FAIL_REQUEUE,  /* process failed, but must be requeued */
-        PROCESS_FAIL_NOQUEUE /* process failed, don't requeue */
-    }
+
 
     class ShutdownHook extends Thread {
 
         @Override
         public void run() {
             shutdownHook = null;
-            stopQueue();
+            try { stopQueue(); } catch (IllegalStateException ignored) {}
         }
     }
+
+    public static FileQueue fileQueue() { return new FileQueue(); }
 
 
 }

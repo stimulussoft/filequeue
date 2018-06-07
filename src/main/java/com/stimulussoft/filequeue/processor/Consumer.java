@@ -1,4 +1,4 @@
-package com.stimulussoft.filequeue;
+package com.stimulussoft.filequeue.processor;
 
 /*
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,12 +25,23 @@ package com.stimulussoft.filequeue;
 public interface Consumer<T> {
 
     /**
+     * Result of consumption
+     */
+
+    enum Result {
+        SUCCESS, /* process was successful */
+        FAIL_REQUEUE,  /* process failed, but must be requeued */
+        FAIL_NOQUEUE /* process failed, don't requeue */
+    }
+
+    /**
      * Consume the given item.
      *
      * @param item to handle.
-     * @return {@code true} if the item was processed successfully and shall be removed from the filequeue.
+     * @return {@code SUCCESS} if the item was processed successfully and shall be removed from the filequeue.
      * @throws InterruptedException if thread was interrupted due to shutdown
      */
-    boolean consume(T item) throws InterruptedException;
+
+    Result consume(T item) throws InterruptedException;
 
 }

@@ -17,6 +17,8 @@
 package com.stimulussoft.filequeue;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.stimulussoft.filequeue.processor.Consumer;
+import com.stimulussoft.filequeue.processor.QueueProcessor;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -47,7 +49,7 @@ public class QueueProcessorTest {
         Path dir = Files.createTempDirectory("filequeue");
 
         final Phaser phaser = new Phaser();
-        QueueProcessor testQueue = QueueProcessor.builder().queuePath(dir).queueName("test_queue").type(Integer.class).maxTries(5).maxRetryDelay(1).retryDelayTimeUnit(TimeUnit.SECONDS).consumer(new AlwaysTrueConsumer(phaser)).build();
+        QueueProcessor testQueue = QueueProcessor.builder().queuePath(dir).queueName("test_queue").type(Integer.class).maxTries(5).maxRetryDelay(1).retryDelayUnit(TimeUnit.SECONDS).consumer(new AlwaysTrueConsumer(phaser)).build();
         int threads = 128;
         int toProcess = 100;
 
@@ -97,11 +99,11 @@ public class QueueProcessorTest {
         }
 
         @Override
-        public boolean consume(Integer item) throws InterruptedException {
+        public Result consume(Integer item) throws InterruptedException {
             Thread.sleep(100);
             phaser.arriveAndDeregister();
             processed.incrementAndGet();
-            return true;
+            return Result.SUCCESS;
         }
     }
 

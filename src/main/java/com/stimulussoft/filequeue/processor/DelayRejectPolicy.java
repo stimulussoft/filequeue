@@ -14,7 +14,7 @@
  * @author Jamie Band
  * @author Valentin Popov
  */
-package com.stimulussoft.filequeue;
+package com.stimulussoft.filequeue.processor;
 
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;

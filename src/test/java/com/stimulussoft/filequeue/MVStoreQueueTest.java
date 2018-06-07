@@ -17,6 +17,7 @@
 
 package com.stimulussoft.filequeue;
 
+import com.stimulussoft.filequeue.store.MVStoreQueue;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;

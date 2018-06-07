@@ -1,4 +1,4 @@
-package com.stimulussoft.filequeue;
+package com.stimulussoft.filequeue.processor;
 
 /*
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,7 @@ package com.stimulussoft.filequeue;
  * @author Valentin Popov (Stimulus Software)
  */
 
-interface Expiration<T> {
+public interface Expiration<T> {
 
     /**
      * Expiration notification

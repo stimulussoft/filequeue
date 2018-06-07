@@ -13,7 +13,7 @@
  *
  */
 
-package com.stimulussoft.filequeue;
+package com.stimulussoft.filequeue.store;
 
 
 import com.google.common.base.Preconditions;
@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
  * Thanks for Martin Grotze for his original work on Persistent Queue
  */
 
-class MVStoreQueue implements Comparable<MVStoreQueue> {
+public class MVStoreQueue implements Comparable<MVStoreQueue> {
 
     private final String queueName;
     private MVMap<Integer, byte[]> mvMap;
@@ -66,7 +66,7 @@ class MVStoreQueue implements Comparable<MVStoreQueue> {
      * @param queueName descriptive filequeue name
      * @throws IOException thrown when the given queueEnvPath does not exist and cannot be created.
      */
-    MVStoreQueue(final Path queueDir,
+    public MVStoreQueue(final Path queueDir,
                         final String queueName) throws IOException {
         Files.createDirectories(queueDir);
         this.queueDir = queueDir.toAbsolutePath();
