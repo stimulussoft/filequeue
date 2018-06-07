@@ -4,7 +4,7 @@ To provide persistence, FileQueue leverages the [MVStore](http://www.h2database.
 
 To attain higher levels of performance, FileQueue will transfer queued items directly to consumers without hitting the database provided there are consumers available. If all consumers are busy, file queue will automatically persistent queued items to the database.
 
-FileQueue also offers basic retry logic. It can be configured to redeliver items that could not be processed at a later stage.
+FileQueue also offers both fixed and exponential back-off retry.
 
 # Usage
 
@@ -45,6 +45,7 @@ Here's an example snippet of code showing the creation of the queue, a client se
     queue.stopQueue();
 
 In the above example, file queue retry policy is configured for exponential backoff. Set maxRetries to zero for infinite retries. 
+The persistRetryDelay option specifies the delay between database scans. 
 
 The FileQueue itself.
 
