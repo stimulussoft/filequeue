@@ -32,7 +32,7 @@ For API docs, run Javadoc on the source code. The linked [JavaDoc](http://javado
 Here's an example snippet of code showing the creation of the queue, a client sending pushing some messages and the consumption of the messages. 
 
     FileQueue queue = FileQueue.fileQueue();
-    RetryFileQueue.Config config = RetryFileQueue.config(queueName,queuePath,TestRetryFileQueueItem.class, new RetryConsumer())
+    FileQueue.Config config = FileQueue.config(queueName,queuePath,TestFileQueueItem.class, new TestConsumer())
                               .maxQueueSize(MAXQUEUESIZE)
                               .retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.EXPONENTIAL)
                               .retryDelay(RETRYDELAY).maxRetryDelay(MAXRETRYDELAY)
@@ -40,7 +40,7 @@ Here's an example snippet of code showing the creation of the queue, a client se
                               .persistRetryDelay(PERSISTENTRETRYDELAY);
     queue.startQueue(config);
     for (int i = 0; i < ROUNDS; i++)
-        queue.queueItem(new RetryFileQueueItem(i));
+        queue.queueItem(new TestFileQueueItem(i));
     // when finished call stopQueue
     queue.stopQueue();
 
@@ -50,18 +50,16 @@ The FileQueue itself.
 
     import com.stimulussoft.filequeue.processor.*;
 
-    static class RetryConsumer extends Consumer<FileQueueItem> {
+    static class TestConsumer implements Consumer<FileQueueItem> {
 
-        public RetryFileQueue() { }
+        public TestConsumer() { }
 
         @Override
         public Result consume(FileQueueItem item) throws InterruptedException {
             try {
-                TestRetryFileQueueItem retryFileQueueItem = (TestRetryFileQueueItem) item;
-                if (retryFileQueueItem.getTryCount() == RETRIES -1 ) {
-                    processedTest2.incrementAndGet();
+                TestFileQueueItem retryFileQueueItem = (TestFileQueueItem) item;
+                if (retryFileQueueItem.getTryCount() == RETRIES )
                     return Result.SUCCESS;
-                }
                 return Result.FAIL_REQUEUE;
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
@@ -74,23 +72,20 @@ FileQueueItem PoJo. You can store anything in this object, provided it is compat
 
     import com.stimulussoft.filequeue.*;
 
-    static class TestRetryFileQueueItem extends FileQueueItem {
+    static class TestFileQueueItem extends FileQueueItem {
 
       Integer id;
 
+      public TestFileQueueItem() { super(); };
 
-      public TestRetryFileQueueItem() {};
-
-      private TestRetryFileQueueItem(Integer id) {
+      private TestFileQueueItem(Integer id) {
           this.id = id;
       }
 
       @Override
-      public String toString() {
-          return String.valueOf(id);
-      }
-
+      public String toString() { return String.valueOf(id); }
       public Integer getId() { return id; }
+      public void setId(Integer id) { this.id = id; }
 
     }
 
