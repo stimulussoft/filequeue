@@ -476,7 +476,7 @@ public class QueueProcessor<T> {
         public void run() {
             try {
                 queueProcessor.tryItem(item);
-                if (consumer.consume(item) != Consumer.Result.FAIL_NOQUEUE)
+                if (consumer.consume(item) == Consumer.Result.FAIL_REQUEUE)
                     flagPush();
             } catch (InterruptedException e) {
                 flagPush();

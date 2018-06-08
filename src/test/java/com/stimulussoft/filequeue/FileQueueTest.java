@@ -24,8 +24,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileQueueTest {
 
-    private static final int ROUNDS = 20000;
-    private static final int RETRIES = 100;
+    private static final int ROUNDS = 2000;
+    private static final int RETRIES = 10;
     private static final int MAXRETRYDELAY = 64;
     private static final int RETRYDELAY = 60;
     private static final int MAXQUEUESIZE = 100;
@@ -62,7 +62,7 @@ public class FileQueueTest {
             producedTest1.incrementAndGet();
             queue.queueItem(new TestFileQueueItem(i));
         }
-        done(producedTest1, processedTest1, null);
+        done(queue, producedTest1, processedTest1, null);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
 
@@ -88,7 +88,7 @@ public class FileQueueTest {
             producedTest2.incrementAndGet();
             queue.queueItem(new TestRetryFileQueueItem(i));
         }
-        done(producedTest2, processedTest2, retryTest2);
+        done(queue, producedTest2, processedTest2, retryTest2);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
     }
@@ -109,7 +109,7 @@ public class FileQueueTest {
             producedTest3.incrementAndGet();
             queue.queueItem(new TestRetryFileQueueItem(i));
         }
-        done(producedTest3, processedTest3, retryTest3);
+        done(queue, producedTest3, processedTest3, retryTest3);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
     }
@@ -131,7 +131,7 @@ public class FileQueueTest {
             producedTest4.incrementAndGet();
             queue.queueItem(new TestRetryFileQueueItem(i));
         }
-        done(producedTest4,expireTest4, retryTest4);
+        done(queue, producedTest4,expireTest4, retryTest4);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
     }
@@ -156,7 +156,7 @@ public class FileQueueTest {
 
     /* Implement File Queue */
 
-    private void done(AtomicInteger produced, AtomicInteger processed, Map<String,AtomicInteger> retries) throws Exception {
+    private void done(FileQueue queue, AtomicInteger produced, AtomicInteger processed, Map<String,AtomicInteger> retries) throws Exception {
         while (processed.get() < ROUNDS) {
             Thread.sleep(1000);
         }
@@ -171,6 +171,7 @@ public class FileQueueTest {
             System.out.println("actual retries:" + r + " expected total retries: " + RETRIES * ROUNDS);
             Assert.assertEquals(RETRIES * ROUNDS, r);
         }
+        Assert.assertEquals(0,queue.getQueueSize());
     }
 
     static class TestFileQueueItem extends FileQueueItem {
