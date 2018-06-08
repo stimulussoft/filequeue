@@ -22,19 +22,23 @@
 
 package com.stimulussoft.filequeue;
 
+import com.google.common.base.Preconditions;
+
 import java.io.Serializable;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- *  FileQueueItem
+ * FileQueueItem
  */
 
 public abstract class FileQueueItem implements Serializable {
 
-    private int retryCount = 0;
+    private AtomicInteger retryCount = new AtomicInteger(0);
     private Date tryDate;
 
-    public FileQueueItem() { }
+    public FileQueueItem() {
+    }
 
     public Date getTryDate() {
         return tryDate;
@@ -45,16 +49,16 @@ public abstract class FileQueueItem implements Serializable {
     }
 
     public int getTryCount() {
-        return retryCount;
+        return retryCount.get();
     }
 
     public void setTryCount(int tryCount) {
-        this.retryCount = tryCount;
+        Preconditions.checkArgument(tryCount >= 0, "tryCount can't be less 0");
+        this.retryCount.set(tryCount);
     }
 
-    public synchronized void incTryCount() {
-        this.retryCount++;
-        if (retryCount<0) retryCount = 0; // to cater for overflow
+    public void incTryCount() {
+        this.retryCount.incrementAndGet();
     }
 
     public abstract String toString();

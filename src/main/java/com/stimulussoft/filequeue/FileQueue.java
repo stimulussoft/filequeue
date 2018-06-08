@@ -61,9 +61,6 @@ public final class FileQueue {
     private QueueProcessor<FileQueueItem> transferQueue;
     private Config config;
 
-
-
-
     /**
      * Create @{@link FileQueue}.
      */
@@ -270,7 +267,6 @@ public final class FileQueue {
      * @throws IllegalArgumentException if the wrong arguments were supplied
      * @throws IOException if the item could not be serialized
      */
-    @VisibleForTesting
     public void queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException, IllegalStateException {
 
         if (fileQueueItem == null) throw new IllegalArgumentException("filequeue item cannot be null");
