@@ -14,6 +14,8 @@ import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -24,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileQueueTest {
 
-    private static final int ROUNDS = 2000;
+    private static final int ROUNDS = 20000;
     private static final int RETRIES = 10;
     private static final int MAXRETRYDELAY = 64;
     private static final int RETRYDELAY = 60;
@@ -58,6 +60,7 @@ public class FileQueueTest {
         Assert.assertEquals(queue.getConfig().getMaxQueueSize(), MAXQUEUESIZE);
         producedTest1.set(0);
         processedTest1.set(0);
+
         for (int i = 0; i < ROUNDS; i++) {
             producedTest1.incrementAndGet();
             queue.queueItem(new TestFileQueueItem(i));
@@ -84,10 +87,17 @@ public class FileQueueTest {
         Assert.assertEquals(queue.getConfig().getRetryDelayUnit(), RetryDelayTimeUnit);
         producedTest2.set(0);
         processedTest2.set(0);
+
+        // we will use a thread pool here to test if queueItem() method is thread-safe.
+        ExecutorService executor = Executors.newFixedThreadPool(6);
         for (int i = 0; i < ROUNDS; i++) {
-            producedTest2.incrementAndGet();
-            queue.queueItem(new TestRetryFileQueueItem(i));
+            final int no = i;
+            executor.execute(() -> {
+                try { producedTest2.incrementAndGet();
+                queue.queueItem(new TestRetryFileQueueItem(no)); } catch (Exception e) { throw new RuntimeException(e.getMessage()); }
+            });
         }
+        executor.shutdown();;
         done(queue, producedTest2, processedTest2, retryTest2);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
