@@ -275,16 +275,19 @@ public final class FileQueue<T> {
      * @param acquireWait     time to wait before checking if shutdown has occurred
      * @param acquireWaitUnit time unit for acquireWait
 
-     * @throws IOException   thrown if could not obtain an open slot (i.e. queue is full)
-     * @throws InterruptedException queuing was interrupted due to shutdown
+     * @throws Exception   thrown if could not obtain an open slot (i.e. queue is full)
      */
 
     @VisibleForTesting
-    public void queueItem(final T fileQueueItem, QueueCallback queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
+    public void queueItem(final T fileQueueItem, QueueCallback queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
         acquirePermit(acquireWait, acquireWaitUnit);
         try {
             queueCallback.availableSlot(fileQueueItem);
             _queueItem(fileQueueItem);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            permits.release();
+            throw ie;
         } catch (Exception io) {
             permits.release();
             throw io;

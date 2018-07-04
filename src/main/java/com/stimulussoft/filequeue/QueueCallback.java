@@ -4,6 +4,6 @@ import java.io.IOException;
 
 public interface QueueCallback<T> {
 
-    void availableSlot(final T fileQueueItem) throws IOException;
+    void availableSlot(final T fileQueueItem) throws Exception;
 
 }
