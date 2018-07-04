@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,8 +34,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <a href="https://github.com/stimulussoft/filequeue">filequeue github page</a> for more info.
  * <p>
  * 1) Implement a Jackson serialization POJO by extending FileQueueItem
- * 2) Implement a consumer class that extends Consumer<FileQueueItem>
- * b) implement consume(FileQueueItem item) to perform actual processing work
+ * 2) Implement a consumer class that extends Consumer
+ * b) implement consume(item) to perform actual processing work
  * 3) Call config() to configure filequeue
  * 4) Call startQueue(config) to start the filequeue
  * 5) Call stopQueue() to stop the filequeue processing
@@ -74,6 +73,8 @@ public final class FileQueue {
      * Start the queue engine
      * @param config queue configuration. call config() to setup file queue configuration.
      * @throws IOException if error reading the db
+     * @throws InterruptedException interruption due to shutdown
+     * @throws IllegalArgumentException wrong arguments
      */
 
     public synchronized void startQueue(Config config) throws IOException, IllegalStateException, IllegalArgumentException, InterruptedException {
@@ -140,6 +141,7 @@ public final class FileQueue {
         /**
          * Queue path
          * @param queuePath             path to queue database
+         * @return config configuration
          */
         public Config queuePath(Path queuePath) { builder = builder.queuePath(queuePath); return this; }
         public Path getQueuePath() { return builder.getQueuePath(); }
@@ -147,6 +149,7 @@ public final class FileQueue {
         /**
          * Queue name
          * @param queueName              friendly name for the queue
+         * @return config configuration
          */
         public  Config queueName(String queueName) { builder = builder.queueName(queueName); return this; }
         public String getQueueName() { return builder.getQueueName(); }
@@ -154,6 +157,7 @@ public final class FileQueue {
         /**
          * Type of queue item
          * @param type                   filequeueitem type
+         * @return config configuration
          */
         public Config type(Class type) throws IllegalArgumentException {
             if (type == FileQueueItem.class || !FileQueueItem.class.isAssignableFrom(type)) 
@@ -165,6 +169,8 @@ public final class FileQueue {
         /**
          * Maximum number of tries. Set to zero for infinite.
          * @param maxTries               maximum number of retries
+         * @return config configuration
+         *
          */
         public  Config maxTries(int maxTries) {builder = builder.maxTries(maxTries); return this; }
         public int getMaxTries() { return builder.getMaxTries(); }
@@ -172,6 +178,7 @@ public final class FileQueue {
         /**
          * Set fixed delay between retries
          * @param retryDelay             delay between retries
+         * @return config configuration
          */
         public  Config retryDelay(int retryDelay) { builder = builder.retryDelay(retryDelay); return this; }
         public int getRetryDelay() { return builder.getRetryDelay(); }
@@ -179,6 +186,7 @@ public final class FileQueue {
         /**
          * Set retry delay between retries from items in database (on disk)
          * @param retryDelay             delay between retries
+         * @return config configuration
          */
         public  Config persistRetryDelay(int retryDelay) { builder = builder.persistRetryDelay(retryDelay); return this; }
         public int getPersistRetryDelay() { return builder.getPersistRetryDelay(); }
@@ -186,6 +194,7 @@ public final class FileQueue {
         /**
          * Set  persist retry delay time unit
          * @param persistRetryDelayUnit  persist retry delay timeunit
+         * @return config configuration
          */
         public  Config persistRetryDelayUnit(TimeUnit persistRetryDelayUnit) { builder = builder.persistRetryDelayUnit(persistRetryDelayUnit); return this; }
         public TimeUnit getPersistRetryDelayUnit() { return builder.getPersistRetryDelayUnit(); }
@@ -193,6 +202,7 @@ public final class FileQueue {
         /**
          * Set maximum delay between retries assuming exponential backoff enabled
          * @param maxRetryDelay            maximum delay between retries
+         * @return config configuration
          */
         public  Config maxRetryDelay(int maxRetryDelay) { builder = builder.maxRetryDelay(maxRetryDelay); return this; }
         public int getMaxRetryDelay() { return builder.getMaxRetryDelay(); }
@@ -201,6 +211,7 @@ public final class FileQueue {
         /**
          * Set retry delay time unit
          * @param retryDelayUnit           retry delay time unit
+         * @return config configuration
          */
         public  Config retryDelayUnit(TimeUnit retryDelayUnit) { builder = builder.retryDelayUnit(retryDelayUnit); return this; }
         public TimeUnit getRetryDelayUnit() { return builder.getRetryDelayUnit(); }
@@ -208,6 +219,7 @@ public final class FileQueue {
         /**
          * Set retry delay algorithm (FIXED or EXPONENTIAL)
          * @param  retryDelayAlgorithm            set to either fixed or exponential backoff
+         * @return config configuration
          */
         public Config retryDelayAlgorithm(RetryDelayAlgorithm retryDelayAlgorithm) {builder = builder.retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.valueOf(retryDelayAlgorithm.name())); return this; }
         public RetryDelayAlgorithm getRetryDelayAlgorithm() { return RetryDelayAlgorithm.valueOf(builder.getRetryDelayAlgorithm().name()); }
@@ -215,6 +227,7 @@ public final class FileQueue {
         /**
          * Set retry delay consumer
          * @param  consumer            retry delay consumer
+         * @return config configuration
          */
         public Config consumer(Consumer<FileQueueItem> consumer) {
             this.consumer = consumer; return this;
@@ -225,6 +238,7 @@ public final class FileQueue {
         /**
          * Set retry delay expiration
          * @param  expiration            retry delay expiration
+         * @return config configuration
          */
         public  Config expiration(Expiration<FileQueueItem> expiration) {builder = builder.expiration(expiration); return this; }
         public Expiration getExpiration() { return builder.getExpiration(); }
@@ -232,6 +246,7 @@ public final class FileQueue {
         /**
          * Set max queue size
          * @param  maxQueueSize            maximum size of queue
+         * @return config configuration
          */
         public  Config maxQueueSize(int maxQueueSize) { this.maxQueueSize = maxQueueSize; return this; }
         public int getMaxQueueSize() { return maxQueueSize; }
@@ -240,6 +255,11 @@ public final class FileQueue {
 
     /**
      * Setup a file queue configuration for pass to startQueue()
+     *  @param queueName   name of the queue
+     *  @param queuePath   location of queue database
+     *  @param type        type of filequeueitem
+     *  @param consumer    consumer
+     *  @return config configuration
      */
 
     public static  Config config(String queueName, Path queuePath, Class type, Consumer consumer) {

@@ -27,6 +27,11 @@ import java.util.Date;
 
 /**
  *  FileQueueItem
+ *
+ *  Extend this abstract class to include the properties of a queue item. For example, an ID that refers to queued element.
+ *
+ *  @author Jamie Band (Stimulus Software)
+ *  @author Valentin Popov (Stimulus Software)
  */
 
 public abstract class FileQueueItem implements Serializable {

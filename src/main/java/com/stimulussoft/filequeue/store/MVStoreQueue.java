@@ -104,7 +104,6 @@ public class MVStoreQueue implements Comparable<MVStoreQueue> {
      * Retrieves and and removes element from the head of this filequeue.
      *
      * @return element from the tail of the filequeue or null if filequeue is empty
-     * @throws IOException in case of disk IO failure
      */
     public synchronized byte[] poll() {
         if (mvMap.isEmpty()) {
@@ -117,8 +116,7 @@ public class MVStoreQueue implements Comparable<MVStoreQueue> {
     /**
      * Pushes element to the tail of this filequeue.
      *
-     * @param {@link Nonnull} element
-     * @throws IOException in case of disk IO failure
+     * @param element byte array containing element data
      */
     public synchronized void push(final byte[] element) {
         Preconditions.checkNotNull(element, "cant insert null");

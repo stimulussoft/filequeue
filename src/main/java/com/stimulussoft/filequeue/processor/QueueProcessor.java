@@ -105,12 +105,14 @@ public class QueueProcessor<T> {
         /**
          * Queue path
          * @param queuePath              path to queue database
+         * @return builder
          */
         public Builder queuePath(Path queuePath) { this.queuePath = queuePath; return this; }
         public Path getQueuePath() { return queuePath; }
         /**
          * Queue name
          * @param queueName              friendly name for the queue
+         * @return builder
          */
         public Builder queueName(String queueName) { this.queueName = queueName; return this; }
         public String getQueueName() { return queueName; }
@@ -118,6 +120,7 @@ public class QueueProcessor<T> {
         /**
          * Type of queue item
          * @param type                   filequeueitem type
+         * @return builder
          */
         public Builder type(Class type) { this.type = type; return this; }
         public Class getType() { return type; }
@@ -125,6 +128,7 @@ public class QueueProcessor<T> {
         /**
          * Maximum number of tries. Set to zero for infinite.
          * @param maxTries               maximum number of retries
+         * @return builder
          */
         public Builder maxTries(int maxTries) { this.maxTries = maxTries; return this; }
         public int getMaxTries() { return maxTries; }
@@ -132,6 +136,7 @@ public class QueueProcessor<T> {
         /**
          * Set fixed delay between retries
          * @param retryDelay             delay between retries
+         * @return builder
          */
         public Builder retryDelay(int retryDelay) { this.retryDelay = retryDelay; return this; }
         public int getRetryDelay() { return retryDelay; }
@@ -139,6 +144,7 @@ public class QueueProcessor<T> {
         /**
          * Set maximum delay between retries assuming exponential backoff enabled
          * @param maxRetryDelay            maximum delay between retries
+         * @return builder
          */
         public Builder maxRetryDelay(int maxRetryDelay) { this.maxRetryDelay = maxRetryDelay; return this; }
         public int getMaxRetryDelay() { return maxRetryDelay; }
@@ -147,6 +153,7 @@ public class QueueProcessor<T> {
          * Set delay between retries when processing items from queue database (on disk). Items are only put on disk
          * when the in-memory-processing-queue is full
          * @param persistRetryDelay   maximum delay between retries for items on disk
+         * @return builder
          */
         public Builder persistRetryDelay(int persistRetryDelay) { this.persistRetryDelay = persistRetryDelay; return this; }
         public int getPersistRetryDelay() { return persistRetryDelay; }
@@ -154,6 +161,7 @@ public class QueueProcessor<T> {
         /**
          * Set persistent retry delay time unit
          * @param persistRetryDelayUnit           persistent retry delay time unit
+         * @return builder
          */
         public Builder persistRetryDelayUnit(TimeUnit persistRetryDelayUnit) { this.persistRetryDelayUnit = persistRetryDelayUnit; return this; }
         public TimeUnit getPersistRetryDelayUnit() { return persistRetryDelayUnit; }
@@ -161,6 +169,7 @@ public class QueueProcessor<T> {
         /**
          * Set retry delay time unit
          * @param retryDelayUnit           retry delay time unit
+         * @return builder
          */
         public Builder retryDelayUnit(TimeUnit retryDelayUnit) { this.retryDelayUnit = retryDelayUnit; return this; }
         public TimeUnit getRetryDelayUnit() { return retryDelayUnit; }
@@ -168,6 +177,7 @@ public class QueueProcessor<T> {
         /**
          * Set retry delay algorithm (FIXED or EXPONENTIAL)
          * @param  retryDelayAlgorithm            set to either fixed or exponential backoff
+         * @return builder
          */
         public Builder retryDelayAlgorithm(RetryDelayAlgorithm retryDelayAlgorithm) { this.retryDelayAlgorithm = retryDelayAlgorithm; return this; }
         public RetryDelayAlgorithm getRetryDelayAlgorithm() { return retryDelayAlgorithm; }
@@ -175,6 +185,7 @@ public class QueueProcessor<T> {
         /**
          * Set retry delay consumer
          * @param  consumer            retry delay consumer
+         * @return builder
          */
         public Builder consumer(Consumer consumer) { this.consumer = consumer; return this; }
         public Consumer getConsumer() { return consumer; }
@@ -182,6 +193,7 @@ public class QueueProcessor<T> {
         /**
          * Set retry delay expiration
          * @param  expiration            retry delay expiration
+         * @return builder
          */
         public Builder expiration(Expiration expiration) { this.expiration = expiration; return this; }
         public Expiration getExpiration() { return expiration; }
