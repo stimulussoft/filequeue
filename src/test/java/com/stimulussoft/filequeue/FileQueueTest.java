@@ -9,6 +9,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
@@ -31,7 +32,7 @@ public class FileQueueTest {
     private static final int MAXRETRYDELAY = 64;
     private static final int RETRYDELAY = 60;
     private static final int MAXQUEUESIZE = 100;
-    private static final int SMALLQUEUESIZE = 3;
+    private static final int SMALLQUEUESIZE = 1000;
     private static final int PERSISTENT_RETRY_DELAY_SEC = 60;
     private static final TimeUnit RetryDelayTimeUnit = TimeUnit.MILLISECONDS;
 
@@ -47,6 +48,7 @@ public class FileQueueTest {
     private static AtomicInteger producedTest3 = new AtomicInteger(0);
     private static AtomicInteger producedTest4 = new AtomicInteger(0);
     private static AtomicInteger producedTest5 = new AtomicInteger(0);
+    private static AtomicInteger availableSlotTest5 = new AtomicInteger(0);
     private static AtomicInteger producedTest6 = new AtomicInteger(0);
     private static Map<String,AtomicInteger> retryTest3 = Maps.newConcurrentMap();
     private static Map<String,AtomicInteger> retryTest4 = Maps.newConcurrentMap();
@@ -164,17 +166,33 @@ public class FileQueueTest {
                  .maxRetryDelay(MAXRETRYDELAY).persistRetryDelay(PERSISTENT_RETRY_DELAY_SEC)
                 .persistRetryDelayUnit(TimeUnit.SECONDS);
         queue.startQueue(config);
+        Assert.assertEquals(SMALLQUEUESIZE,queue.availablePermits());
         producedTest5.set(0);
         processedTest5.set(0);
-        for (int i = 0; i < ROUNDS; i++) {
-            producedTest5.incrementAndGet();
-            queue.queueItem(new TestRetryFileQueueItem(i));
+        availableSlotTest5.set(0);
+        QueueCallbackTest queueCallbackTest = new QueueCallbackTest();
+        for (int i = 0; i < ROUNDS / 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                producedTest5.incrementAndGet();
+                queue.queueItem(new TestRetryFileQueueItem(i * 10 + j), queueCallbackTest, 1, TimeUnit.HOURS);
+            }
         }
-        done(queue, producedTest5,processedTest5, retryTest5);
+        done(queue, producedTest5, processedTest5, retryTest5);
+        System.out.println("available slots "+availableSlotTest5.get());
+        Assert.assertEquals(ROUNDS,availableSlotTest5.get());
+        System.out.println("available permits "+queue.availablePermits());
+        Assert.assertEquals(SMALLQUEUESIZE,queue.availablePermits());
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
     }
 
+    public class QueueCallbackTest implements QueueCallback {
+
+        @Override
+        public void availableSlot(FileQueueItem fileQueueItem) throws IOException {
+            availableSlotTest5.incrementAndGet();
+        }
+    }
     @Test
     public void testPersist() throws Exception {
         String queueName = "testpersist";
@@ -192,7 +210,7 @@ public class FileQueueTest {
             queue.startQueue(config);
             for (int i = 0 ; i < 10; i++) {
                 producedTest6.incrementAndGet();
-                queue.queueItem(new TestRetryFileQueueItem(j + i));
+                queue.queueItem(new TestRetryFileQueueItem(j*10 + i));
             }
             queue.stopQueue();
         }

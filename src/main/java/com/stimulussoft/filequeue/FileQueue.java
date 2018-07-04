@@ -57,7 +57,6 @@ public final class FileQueue {
     private final AtomicBoolean isStarted = new AtomicBoolean();
     private final AdjustableSemaphore permits = new AdjustableSemaphore();
     private int minFreeSpaceMb = 20;
-    private int diskSpaceCheckDelayMsec = 20;
     private QueueProcessor<FileQueueItem> transferQueue;
     private Config config;
 
@@ -77,25 +76,25 @@ public final class FileQueue {
      * @throws IOException if error reading the db
      */
 
-    public synchronized void startQueue(Config config) throws IOException, IllegalStateException, IllegalArgumentException {
+    public synchronized void startQueue(Config config) throws IOException, IllegalStateException, IllegalArgumentException, InterruptedException {
         if (isStarted.get()) throw new IllegalStateException("already started");
         this.config = config;
         transferQueue = config.builder.consumer(fileQueueConsumer).build();
         permits.setMaxPermits(config.maxQueueSize);
-        isStarted.set(true);
+        permits.acquire((int)transferQueue.size());
         shutdownHook = new ShutdownHook();
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
         Runtime.getRuntime().addShutdownHook(shutdownHook);
+        isStarted.set(true);
     }
 
     // this class is neeeded to release permit after processing an item
 
     private final Consumer<FileQueueItem> fileQueueConsumer = item -> {
-        try {
-            return config.getConsumer().consume(item);
-        } finally {
+        Consumer.Result result = config.getConsumer().consume(item);
+        if (result != Consumer.Result.FAIL_REQUEUE)
             permits.release();
-        }
+        return result;
     };
 
 
@@ -248,21 +247,50 @@ public final class FileQueue {
     }
 
     /**
-     * Queue item for delivery.
+     * Queue item for delivery. Wait for an open slot for a specified time period.
+     * Calls availableSlot when slot becomes available, immediately before queuing
      *
      * @param fileQueueItem   item for queuing
-     * @param block           whether to block if filequeue is full or throw an exception
+     * @param queueCallback   availableSlot method is executed when slot becomes available
      * @param acquireWait     time to wait before checking if shutdown has occurred
-     * @param acquireWaitUnit time unit for acquireWait above wait
-     * @throws IOException   general filequeue error
+     * @param acquireWaitUnit time unit for acquireWait
+
+     * @throws IOException   thrown if could not obtain an open slot (i.e. queue is full)
      * @throws InterruptedException queuing was interrupted due to shutdown
      */
 
-    public void queueItem(final FileQueueItem fileQueueItem, boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
-        ready(block, acquireWait, acquireWaitUnit);
-        queueItem(fileQueueItem);
+    @VisibleForTesting
+    public void queueItem(final FileQueueItem fileQueueItem, QueueCallback queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
+        acquirePermit(acquireWait, acquireWaitUnit);
+        try {
+            queueCallback.availableSlot(fileQueueItem);
+            _queueItem(fileQueueItem);
+        } catch (Exception io) {
+            permits.release();
+            throw io;
+        }
     }
 
+    /**
+     * Queue item for delivery. Wait for an open slot for a specified period.
+     *
+     * @param fileQueueItem   item for queuing
+     * @param acquireWait     time to wait before checking if shutdown has occurred
+     * @param acquireWaitUnit time unit for acquireWait
+     * @throws IOException   thrown if could not obtain an open slot (i.e. queue is full)
+     * @throws InterruptedException queuing was interrupted due to shutdown
+     */
+
+    @VisibleForTesting
+    public void queueItem(final FileQueueItem fileQueueItem, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
+        acquirePermit(acquireWait, acquireWaitUnit);
+        try {
+            queueItem(fileQueueItem);
+        } catch (Exception io) {
+            permits.release();
+            throw io;
+        }
+    }
     /**
      * Queue item for delivery (no blocking)
      *
@@ -270,30 +298,33 @@ public final class FileQueue {
      * @throws IllegalArgumentException if the wrong arguments were supplied
      * @throws IOException if the item could not be serialized
      */
+
     @VisibleForTesting
     public void queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException, IllegalStateException {
+        _queueItem(fileQueueItem);
+    }
 
-        if (fileQueueItem == null) throw new IllegalArgumentException("filequeue item cannot be null");
-        if (!isStarted.get()) throw new IllegalStateException("queue not started");
+    /**
+     * Private function for queue item for delivery (no blocking)
+     *
+     * @param fileQueueItem item for queuing
+     * @throws IllegalArgumentException if the wrong arguments were supplied
+     * @throws IOException if the item could not be serialized
+     */
+
+    private void _queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException, IllegalStateException {
+
+        if (fileQueueItem == null)
+            throw new IllegalArgumentException("filequeue item cannot be null");
+
+        if (!isStarted.get())
+            throw new IllegalStateException("queue not started");
         
         try {
             transferQueue.submit(fileQueueItem);
             // mvstore throws a null ptr exception when out of disk space
-            // first we check whether at least 50 MB available space, if so, we try to reopen filequeue and push item again
-            // if failed, we rethrow nullpointerexception
         } catch (NullPointerException npe) {
-            if (Files.getFileStore(transferQueue.getQueueBaseDir()).getUsableSpace() > fiftyMegs) {
-                try {
-                    transferQueue.reopen();
-                    transferQueue.submit(fileQueueItem);
-                } catch (Exception e) {
-                    permits.release();
-                    throw npe;
-                }
-            } else {
-                permits.release();
-                throw npe;
-            }
+            throw new IOException("not enough disk space");
         } catch (Exception e) {
             throw new IOException(e);
         }
@@ -322,55 +353,19 @@ public final class FileQueue {
         permits.setMaxPermits(queueSize);
     }
 
-    public void release() {
-        permits.release();
-    }
 
     /**
-     * Call this function to block until space is available in filequeue for processing.
+     * Private function to acquire an open slot in the queue for processing.
      *
-     * @param block           whether to block if filequeue is full or throw an exception
-     * @param acquireWait     time to wait before checking if shutdown has occurred
-     * @param acquireWaitUnit time unit for acquireWait above wait
+     * @param acquireWait     time to wait for acquisition of free slot
+     * @param acquireWaitUnit time unit for acquireWait
      * @throws InterruptedException thrown if waiting was interrupted due to shutdown
-     * @throws IOException thrown if there is not enough free space or the queue is full
+     * @throws IOException thrown if could not acquire a free slot
      */
-    public void ready(boolean block, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
-
-        if (acquireWait < 0) throw new IllegalArgumentException("acquire wait must be greater than zero");
-        if (acquireWaitUnit == null) throw new IllegalArgumentException("acquire wait until cannot be null");
-        if (!isStarted.get()) throw new IllegalStateException("queue not started");
-        
-        long minFreeSpace = (long) minFreeSpaceMb * 1024L * 1024L;
-
-        if (block) {
-            boolean acquired = false;
-            while (isStarted.get() && !acquired) {
-                acquired = permits.tryAcquire(acquireWait, acquireWaitUnit);
-            }
-
-            long freeSpace = Files.getFileStore(transferQueue.getQueuePath()).getUsableSpace();
-            if (freeSpace <= minFreeSpace)
-                logger.warn("not enough disk space on " + transferQueue.getQueuePath() + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}. " +
-                        "blocking operations until diskspace is freed.");
-
-            while (isStarted.get() && freeSpace <= minFreeSpace) {
-                freeSpace = Files.getFileStore(transferQueue.getQueuePath()).getUsableSpace();
-                Thread.sleep(diskSpaceCheckDelayMsec);
-            }
-
-        } else {
+    private void acquirePermit(int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
             if (!permits.tryAcquire(acquireWait, acquireWaitUnit))
                 throw new IOException("filequeue " + transferQueue.getQueuePath() + " is full. {maxQueueSize='" + config.maxQueueSize + "'}");
-
-            long freeSpace = Files.getFileStore(transferQueue.getQueuePath()).getUsableSpace();
-            if (freeSpace <= minFreeSpace) {
-                permits.release();
-                throw new IOException("not enough free space on " + transferQueue.getQueuePath() + " {freeSpace='" + freeSpace + "',minSpace='" + minFreeSpaceMb + "mb'}");
-            }
-
-        }
-    }
+     }
 
     /**
      * Set minimum free space to allow before a new item will be accepted on the queue
@@ -393,29 +388,9 @@ public final class FileQueue {
     }
 
     /**
-     * Return milliseconds to wait before checking the diskspace again
-     *
-     * @return diskspace check delay in msec
-     */
-
-    public int getDiskSpaceCheckDelayMsec() {
-        return diskSpaceCheckDelayMsec;
-    }
-
-    /**
      * Return no items in filequeue
      * @return no queued items
      */
-
-    /**
-     * Set minimum free space to allow before a new item will be accepted on the queue
-     *
-     * @param diskSpaceCheckDelayMsec diskspace check delay in msec
-     */
-
-    public void setDiskSpaceCheckDelayMsec(int diskSpaceCheckDelayMsec) {
-        this.diskSpaceCheckDelayMsec = diskSpaceCheckDelayMsec;
-    }
 
     /**
      * Return no items in filequeue
@@ -426,9 +401,6 @@ public final class FileQueue {
     public long getNoQueueItems() {
         return transferQueue.size();
     }
-
-
-
 
     class ShutdownHook extends Thread {
 
@@ -442,5 +414,6 @@ public final class FileQueue {
     public static FileQueue fileQueue() { return new FileQueue(); }
 
 
-}
+    protected int availablePermits() { return permits.availablePermits(); }
+        }
 
