@@ -82,7 +82,8 @@ public final class FileQueue<T> {
         this.config = config;
         transferQueue = config.builder.consumer(fileQueueConsumer).build();
         permits.setMaxPermits(config.maxQueueSize);
-        permits.acquire((int)transferQueue.size());
+        for (int i = 0; i < transferQueue.size(); i++)
+            if (!permits.tryAcquire()) break;
         shutdownHook = new ShutdownHook();
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
         Runtime.getRuntime().addShutdownHook(shutdownHook);
@@ -285,7 +286,6 @@ public final class FileQueue<T> {
             queueCallback.availableSlot(fileQueueItem);
             _queueItem(fileQueueItem);
         } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
             permits.release();
             throw ie;
         } catch (Exception io) {
