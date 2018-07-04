@@ -186,10 +186,10 @@ public class FileQueueTest {
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
     }
 
-    public class QueueCallbackTest implements QueueCallback {
+    public class QueueCallbackTest implements QueueCallback<FileQueueItem> {
 
         @Override
-        public void availableSlot(FileQueueItem fileQueueItem) throws IOException {
+        public void availableSlot(FileQueueItem fileQueueItem) {
             availableSlotTest5.incrementAndGet();
         }
     }

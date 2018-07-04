@@ -2,8 +2,8 @@ package com.stimulussoft.filequeue;
 
 import java.io.IOException;
 
-public interface QueueCallback {
+public interface QueueCallback<T> {
 
-    void availableSlot(final FileQueueItem fileQueueItem) throws IOException;
+    void availableSlot(final T fileQueueItem) throws IOException;
 
 }

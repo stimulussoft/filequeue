@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author Valentin Popov (Stimulus Software)
  */
 
-public final class FileQueue {
+public final class FileQueue<T> {
 
     private static final long fiftyMegs = 50L * 1024L * 1024L;
     public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL}
@@ -56,7 +56,7 @@ public final class FileQueue {
     private final AtomicBoolean isStarted = new AtomicBoolean();
     private final AdjustableSemaphore permits = new AdjustableSemaphore();
     private int minFreeSpaceMb = 20;
-    private QueueProcessor<FileQueueItem> transferQueue;
+    private QueueProcessor<T> transferQueue;
     private Config config;
 
 
@@ -91,7 +91,7 @@ public final class FileQueue {
 
     // this class is neeeded to release permit after processing an item
 
-    private final Consumer<FileQueueItem> fileQueueConsumer = item -> {
+    private final Consumer<T> fileQueueConsumer = item -> {
         Consumer.Result result = config.getConsumer().consume(item);
         if (result != Consumer.Result.FAIL_REQUEUE)
             permits.release();
@@ -124,7 +124,7 @@ public final class FileQueue {
         }
     }
 
-    public static class Config {
+    public static class Config<T> {
 
         private int maxQueueSize = Integer.MAX_VALUE;
         private Consumer consumer;
@@ -160,7 +160,7 @@ public final class FileQueue {
          * @return config configuration
          */
         public Config type(Class type) throws IllegalArgumentException {
-            if (type == FileQueueItem.class || !FileQueueItem.class.isAssignableFrom(type)) 
+            if (type == FileQueueItem.class || !FileQueueItem.class.isAssignableFrom(type))
                 throw new IllegalArgumentException("type must be a subclass of filequeueitem");
             builder = builder.type(type); return this;
         }
@@ -229,7 +229,7 @@ public final class FileQueue {
          * @param  consumer            retry delay consumer
          * @return config configuration
          */
-        public Config consumer(Consumer<FileQueueItem> consumer) {
+        public Config consumer(Consumer<T> consumer) {
             this.consumer = consumer; return this;
         }
 
@@ -240,7 +240,7 @@ public final class FileQueue {
          * @param  expiration            retry delay expiration
          * @return config configuration
          */
-        public  Config expiration(Expiration<FileQueueItem> expiration) {builder = builder.expiration(expiration); return this; }
+        public  Config expiration(Expiration<T> expiration) {builder = builder.expiration(expiration); return this; }
         public Expiration getExpiration() { return builder.getExpiration(); }
 
         /**
@@ -263,7 +263,7 @@ public final class FileQueue {
      */
 
     public static  Config config(String queueName, Path queuePath, Class type, Consumer consumer) {
-        return new Config(queueName, queuePath, type, consumer);
+        return new Config<FileQueueItem>(queueName, queuePath, type, consumer);
     }
 
     /**
@@ -280,7 +280,7 @@ public final class FileQueue {
      */
 
     @VisibleForTesting
-    public void queueItem(final FileQueueItem fileQueueItem, QueueCallback queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
+    public void queueItem(final T fileQueueItem, QueueCallback queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
         acquirePermit(acquireWait, acquireWaitUnit);
         try {
             queueCallback.availableSlot(fileQueueItem);
@@ -302,7 +302,7 @@ public final class FileQueue {
      */
 
     @VisibleForTesting
-    public void queueItem(final FileQueueItem fileQueueItem, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
+    public void queueItem(final T fileQueueItem, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
         acquirePermit(acquireWait, acquireWaitUnit);
         try {
             queueItem(fileQueueItem);
@@ -320,7 +320,7 @@ public final class FileQueue {
      */
 
     @VisibleForTesting
-    public void queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException, IllegalStateException {
+    public void queueItem(final T fileQueueItem) throws IOException, IllegalArgumentException, IllegalStateException {
         _queueItem(fileQueueItem);
     }
 
@@ -332,7 +332,7 @@ public final class FileQueue {
      * @throws IOException if the item could not be serialized
      */
 
-    private void _queueItem(final FileQueueItem fileQueueItem) throws IOException, IllegalArgumentException, IllegalStateException {
+    private void _queueItem(final T fileQueueItem) throws IOException, IllegalArgumentException, IllegalStateException {
 
         if (fileQueueItem == null)
             throw new IllegalArgumentException("filequeue item cannot be null");
@@ -431,7 +431,7 @@ public final class FileQueue {
         }
     }
 
-    public static FileQueue fileQueue() { return new FileQueue(); }
+    public static FileQueue<FileQueueItem> fileQueue() { return new FileQueue<>(); }
 
 
     protected int availablePermits() { return permits.availablePermits(); }
