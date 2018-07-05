@@ -1,10 +1,15 @@
 # Introduction
-The FileQueue project offers a light weight, high performance, simple, reliable and persistent queue for Java applications. All Producers and consumers are run within a single Java runtime.
-To provide persistence, FileQueue leverages the [MVStore](http://www.h2database.com/html/mvstore.html) database engine from H2. Queue items are regular Java POJOs, serialized into Json using [jackson](http://jackson.codehaus.org/).
 
-To attain higher levels of performance, FileQueue will transfer queued items directly to consumers without hitting the database provided there are consumers available. If all consumers are busy, file queue will automatically persistent queued items to the database.
+The File Queue project offers a light weight, high performance, simple, reliable and persistent queue for Java applications. All Producers and consumers run within a single Java runtime.
+To provide persistence, File Queue leverages the [MVStore](http://www.h2database.com/html/mvstore.html) database engine from H2. Queue items are regular Java POJOs, serialized into Json using [jackson](http://jackson.codehaus.org/).
 
-FileQueue also offers both fixed and exponential back-off retry.
+To attain higher levels of performance, File Queue will transfer queued items directly to consumers without hitting the database provided there are consumers available. If all consumers are busy, file queue will automatically persistent queued items to the database.
+
+File Queue also offers both fixed and exponential back-off retry.
+
+# Why Reinvent the Wheel?
+
+For our project, we needed a simple, light weight, high performance persistent queue written in Java. We tried them all, and could not find one that met our needs. 
 
 # Usage
 
@@ -92,7 +97,7 @@ FileQueueItem PoJo. You can store anything in this object, provided it is compat
 
 
 
-Refer to the FileQueueTest in the distribution for a working example.
+Refer to the FileQueueTest in the distribution for working examples.
 
 
 # Credits
