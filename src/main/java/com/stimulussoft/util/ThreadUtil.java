@@ -107,7 +107,7 @@ public class ThreadUtil {
     }
 
     public static ExecutorService newFlexiThreadPool(int maximumPoolSize, ThreadFactory threadFactory) {
-        return new ThreadPoolExecutor(DEFAULT_CORE_POOL_SIZE, maximumPoolSize, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(), threadFactory);
+        return new ThreadPoolExecutor(DEFAULT_CORE_POOL_SIZE, maximumPoolSize, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
     }
 
     private static class ThreadGroupThreadFactory implements ThreadFactory {

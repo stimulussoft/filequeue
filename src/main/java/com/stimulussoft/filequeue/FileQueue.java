@@ -53,9 +53,6 @@ public final class FileQueue<T> {
     private QueueProcessor<T> transferQueue;
     private Config config;
 
-
-
-
     /**
      * Create @{@link FileQueue}.
      */
@@ -298,8 +295,7 @@ public final class FileQueue<T> {
      * @throws InterruptedException queuing was interrupted due to shutdown
      */
 
-    @VisibleForTesting
-    public void queueItem(final T fileQueueItem, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
+        public void queueItem(final T fileQueueItem, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
         acquirePermit(acquireWait, acquireWaitUnit);
         try {
             queueItem(fileQueueItem);
@@ -316,7 +312,6 @@ public final class FileQueue<T> {
      * @throws IOException if the item could not be serialized
      */
 
-    @VisibleForTesting
     public void queueItem(final T fileQueueItem) throws IOException, IllegalArgumentException, IllegalStateException {
         _queueItem(fileQueueItem);
     }
