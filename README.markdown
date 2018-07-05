@@ -32,7 +32,7 @@ The steps for integration are as follows:
 
 For API docs, refer to the File Queue [JavaDocs](http://javadoc.io/doc/com.stimulussoft/filequeue/1.0.29).
 
-Here's an example snippet of code showing the creation of the queue, a client sending pushing some messages and the consumption of the messages. 
+Here's an example snippet of code showing the creation of the queue, submission of an item for processing, and the consumption of that item. 
 
     FileQueue queue = FileQueue.fileQueue();
     FileQueue.Config config = FileQueue.config(queueName,queuePath,TestFileQueueItem.class, new TestConsumer())
