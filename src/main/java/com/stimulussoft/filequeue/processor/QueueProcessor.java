@@ -46,11 +46,11 @@ public class QueueProcessor<T> {
             new SynchronousQueue<>(true),
             ThreadUtil.getFlexibleThreadFactory("filequeue-worker", false),
             new DelayRejectPolicy());
-    private static final ScheduledExecutorService mvstoreCleanUP = Executors.newSingleThreadScheduledExecutor(
+    private static final ScheduledExecutorService mvstoreCleanUPScheduler = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(),
             ThreadUtil.getFlexibleThreadFactory("mvstore-cleanup", false));
     static {
         MoreExecutors.addDelayedShutdownHook(executorService, 60L, TimeUnit.SECONDS);
-        MoreExecutors.addDelayedShutdownHook(mvstoreCleanUP, 60L, TimeUnit.SECONDS);
+        MoreExecutors.addDelayedShutdownHook(mvstoreCleanUPScheduler, 60L, TimeUnit.SECONDS);
 
     }
 
@@ -62,7 +62,7 @@ public class QueueProcessor<T> {
     private final Consumer<T> consumer;
     private final Expiration<T> expiration;
     private final Phaser restorePolled = new Phaser();
-    private Optional<ScheduledFuture<?>> cleanupTask;
+    private Optional<ScheduledFuture<?>> cleanupTaskScheduler;
     private volatile boolean doRun = true;
     private final int maxTries;
     private final int retryDelay;
@@ -243,7 +243,7 @@ public class QueueProcessor<T> {
         else
             this.persistRetryDelay  = builder.persistRetryDelay;
         this.persistRetryDelayUnit  = builder.persistRetryDelayUnit;
-        cleanupTask = Optional.of(mvstoreCleanUP.scheduleWithFixedDelay(new MVStoreCleaner(this), 0, persistRetryDelay, retryDelayUnit));
+        cleanupTaskScheduler = Optional.of(mvstoreCleanUPScheduler.scheduleWithFixedDelay(new MVStoreCleaner(this), 0, persistRetryDelay, retryDelayUnit));
     }
 
     /**
@@ -291,7 +291,7 @@ public class QueueProcessor<T> {
 
     public void close() {
         doRun = false;
-        cleanupTask.ifPresent(cleanupTask -> cleanupTask.cancel(true));
+        cleanupTaskScheduler.ifPresent(cleanupTask -> cleanupTask.cancel(true));
         restorePolled.register();
         restorePolled.arriveAndAwaitAdvance();
         mvStoreQueue.close();
@@ -411,10 +411,10 @@ public class QueueProcessor<T> {
 
     private final class MVStoreCleaner implements Runnable {
 
-        private final QueueProcessor processingQueue;
+        private final QueueProcessor queueProcessor;
 
-        MVStoreCleaner(QueueProcessor processingQueue) {
-            this.processingQueue = processingQueue;
+        MVStoreCleaner(QueueProcessor queueProcessor) {
+            this.queueProcessor = queueProcessor;
         }
 
         @Override
@@ -434,7 +434,7 @@ public class QueueProcessor<T> {
 
                             if (isNeedRetry(item)) {
                                 if (isTimeToRetry(item))
-                                    processingQueue.submit(item);
+                                    queueProcessor.submit(item);
                                 else
                                     mvStoreQueue.push(toDeserialize);
                             } else {

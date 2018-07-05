@@ -48,7 +48,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class FileQueue<T> {
 
-    private static final long fiftyMegs = 50L * 1024L * 1024L;
     public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL}
 
     private Logger logger = LoggerFactory.getLogger("com.stimulussoft");
