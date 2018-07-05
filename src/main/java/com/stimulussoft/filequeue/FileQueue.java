@@ -18,9 +18,6 @@ import com.stimulussoft.filequeue.processor.Consumer;
 import com.stimulussoft.filequeue.processor.Expiration;
 import com.stimulussoft.filequeue.processor.QueueProcessor;
 import com.stimulussoft.util.AdjustableSemaphore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
@@ -48,10 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class FileQueue<T> {
 
-    private static final long fiftyMegs = 50L * 1024L * 1024L;
     public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL}
-
-    private Logger logger = LoggerFactory.getLogger("com.stimulussoft");
     private ShutdownHook shutdownHook;
     private final AtomicBoolean isStarted = new AtomicBoolean();
     private final AdjustableSemaphore permits = new AdjustableSemaphore();
@@ -386,6 +380,8 @@ public final class FileQueue<T> {
      * @throws IOException thrown if could not acquire a free slot
      */
     private void acquirePermit(int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
+        if (!isStarted.get())
+            throw new IllegalStateException("queue not started");
             if (!permits.tryAcquire(acquireWait, acquireWaitUnit))
                 throw new IOException("filequeue " + transferQueue.getQueuePath() + " is full. {maxQueueSize='" + config.maxQueueSize + "'}");
      }
