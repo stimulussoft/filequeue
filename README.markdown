@@ -15,19 +15,17 @@ The steps for integration are as follows:
     <dependency>
         <groupId>com.stimulussoft</groupId>
         <artifactId>filequeue</artifactId>
-        <version>[insert version]</version>
+        <version>1.0.29</version>
         <scope>test</scope>
     </dependency>
 
-Note: Build on maven central is outdated. Please checkout the source code from Git hub and run mvn install to build the library.
-  
   2. Extend Consumer<FileQueueItem> and implement consume(FileQueueItem) to perform actual processing work.
   3. Create a new FileQueue object
   4. Call config() to construct an appropriate configuration
   5. Call startQueue() to start the queue
   6. Call stopQueue() to stop the queue processing
 
-For API docs, run Javadoc on the source code. The linked [JavaDoc](http://javadoc.io/doc/com.stimulussoft/filequeue/1.0.4) is outdated.
+For API docs, refer to the File Queue [JavaDocs](http://javadoc.io/doc/com.stimulussoft/filequeue/1.0.29).
 
 Here's an example snippet of code showing the creation of the queue, a client sending pushing some messages and the consumption of the messages. 
 
