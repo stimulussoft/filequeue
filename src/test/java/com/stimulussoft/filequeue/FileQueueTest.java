@@ -27,7 +27,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileQueueTest {
 
+    private static boolean block = true;
     private static final int ROUNDS = 20000;
+    private static final int BLOCKS = 8;
     private static final int RETRIES = 10;
     private static final int MAXRETRYDELAY = 64;
     private static final int RETRYDELAY = 60;
@@ -36,30 +38,33 @@ public class FileQueueTest {
     private static final int PERSISTENT_RETRY_DELAY_SEC = 60;
     private static final TimeUnit RetryDelayTimeUnit = TimeUnit.MILLISECONDS;
 
-    private static AtomicInteger processedTest1 = new AtomicInteger(0);
-    private static AtomicInteger producedTest1 = new AtomicInteger(0);
-    private static AtomicInteger processedTest2 = new AtomicInteger(0);
-    private static AtomicInteger producedTest2 = new AtomicInteger(0);
-    private static Map<String,AtomicInteger> retryTest2 = Maps.newConcurrentMap();
-    private static AtomicInteger processedTest3 = new AtomicInteger(0);
-    private static AtomicInteger processedTest4 = new AtomicInteger(0);
-    private static AtomicInteger processedTest5 = new AtomicInteger(0);
-    private static AtomicInteger processedTest6 = new AtomicInteger(0);
-    private static AtomicInteger producedTest3 = new AtomicInteger(0);
-    private static AtomicInteger producedTest4 = new AtomicInteger(0);
-    private static AtomicInteger producedTest5 = new AtomicInteger(0);
-    private static AtomicInteger availableSlotTest5 = new AtomicInteger(0);
-    private static AtomicInteger producedTest6 = new AtomicInteger(0);
-    private static Map<String,AtomicInteger> retryTest3 = Maps.newConcurrentMap();
-    private static Map<String,AtomicInteger> retryTest4 = Maps.newConcurrentMap();
-    private static Map<String,AtomicInteger> retryTest5 = Maps.newConcurrentMap();
-    private static AtomicInteger expireTest4 =  new AtomicInteger(0);
+    private static AtomicInteger processedTestWithoutRetries = new AtomicInteger(0);
+    private static AtomicInteger producedTestWithoutRetries = new AtomicInteger(0);
+    private static AtomicInteger processedTestWithRetries = new AtomicInteger(0);
+    private static AtomicInteger producedTestWithRetries = new AtomicInteger(0);
+    private static AtomicInteger producedTestWithBlockage = new AtomicInteger(0);
+    private static Map<String,AtomicInteger> retryTestWithRetries = Maps.newConcurrentMap();
+    private static AtomicInteger processedTestWithRetryAndExponentialDelay = new AtomicInteger(0);
+    private static AtomicInteger processedTestWithExpiry = new AtomicInteger(0);
+    private static AtomicInteger processedTestWithRetriesAndWait = new AtomicInteger(0);
+    private static AtomicInteger processedTestPersist = new AtomicInteger(0);
+    private static AtomicInteger processedTestWithBlockage = new AtomicInteger(0);
+    private static AtomicInteger producedTestWithRetryAndExponentialDelay = new AtomicInteger(0);
+    private static AtomicInteger producedTestWithExpiry = new AtomicInteger(0);
+    private static AtomicInteger producedTestWithRetriesAndWait = new AtomicInteger(0);
+    private static AtomicInteger availableSlotTestWithRetriesAndWait = new AtomicInteger(0);
+    private static AtomicInteger producedTestPersist = new AtomicInteger(0);
+    private static Map<String,AtomicInteger> retryTestWithRetryAndExponentialDelay = Maps.newConcurrentMap();
+    private static Map<String,AtomicInteger> retryTestWithExpiry = Maps.newConcurrentMap();
+    private static Map<String,AtomicInteger> retryTestWithRetriesAndWait = Maps.newConcurrentMap();
+    private static AtomicInteger expireTestWithExpiry =  new AtomicInteger(0);
+
     /* Test Without Retries */
 
     @Test
     public void testWithoutRetries() throws Exception {
-        String queueName = "test1";
-        Path db = setup("filequeue test without retries", queueName, producedTest1, processedTest1);
+        String queueName = "testWithoutRetries";
+        Path db = setup("filequeue test without retries", queueName, producedTestWithoutRetries, processedTestWithoutRetries);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
         FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestConsumer()).maxQueueSize(MAXQUEUESIZE).persistRetryDelay(1);
@@ -67,14 +72,14 @@ public class FileQueueTest {
         Assert.assertEquals(queue.getConfig().getQueueName(), queueName);
         Assert.assertEquals(queue.getConfig().getQueuePath(), db);
         Assert.assertEquals(queue.getConfig().getMaxQueueSize(), MAXQUEUESIZE);
-        producedTest1.set(0);
-        processedTest1.set(0);
+        producedTestWithoutRetries.set(0);
+        processedTestWithoutRetries.set(0);
 
         for (int i = 0; i < ROUNDS; i++) {
-            producedTest1.incrementAndGet();
+            producedTestWithoutRetries.incrementAndGet();
             queue.queueItem(new TestFileQueueItem(i));
         }
-        done(queue, producedTest1, processedTest1, null);
+        done(queue, producedTestWithoutRetries, processedTestWithoutRetries, null);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
 
@@ -84,102 +89,111 @@ public class FileQueueTest {
 
     @Test
     public void testWithRetries() throws Exception {
-        String queueName = "test2";
-        Path db = setup("filequeue test with retries", queueName, producedTest2, processedTest2);
+        String queueName = "testWithRetries";
+        Path db = setup("filequeue test with retries", queueName, producedTestWithRetries, processedTestWithRetries);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestRetryFileQueueItem.class,new TestRetryConsumer2()).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestRetryConsumer2()).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
                                   .retryDelay(RETRYDELAY).retryDelayUnit(RetryDelayTimeUnit).persistRetryDelay(1);
         queue.startQueue(config);
         Assert.assertEquals(queue.getConfig().getMaxTries(), RETRIES);
         Assert.assertEquals(queue.getConfig().getRetryDelay(), RETRYDELAY);
         Assert.assertEquals(queue.getConfig().getRetryDelayUnit(), RetryDelayTimeUnit);
-        producedTest2.set(0);
-        processedTest2.set(0);
+        producedTestWithRetries.set(0);
+        processedTestWithRetries.set(0);
 
         // we will use a thread pool here to test if queueItem() method is thread-safe.
         ExecutorService executor = Executors.newFixedThreadPool(6);
         for (int i = 0; i < ROUNDS; i++) {
             final int no = i;
             executor.execute(() -> {
-                try { producedTest2.incrementAndGet();
-                queue.queueItem(new TestRetryFileQueueItem(no)); } catch (Exception e) { throw new RuntimeException(e.getMessage()); }
+                try { producedTestWithRetries.incrementAndGet();
+                queue.queueItem(new TestFileQueueItem(no)); } catch (Exception e) { throw new RuntimeException(e.getMessage()); }
             });
         }
         executor.shutdown();;
-        done(queue, producedTest2, processedTest2, retryTest2);
+        done(queue, producedTestWithRetries, processedTestWithRetries, retryTestWithRetries);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
     }
 
+    /* Test Without Retry And Exponential Delay */
+    
     @Test
     public void testWithRetryAndExponentialDelay() throws Exception {
-        String queueName = "test3";
-        Path db = setup("filequeue test with retries and exponential delay", queueName, producedTest3, processedTest3);
+        String queueName = "testWithRetryAndExponentialDelay";
+        Path db = setup("filequeue test with retries and exponential delay", queueName, producedTestWithRetryAndExponentialDelay, processedTestWithRetryAndExponentialDelay);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestRetryFileQueueItem.class,new TestRetryConsumer3()).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestRetryConsumer3()).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
                 .retryDelay(RETRYDELAY).retryDelayUnit(RetryDelayTimeUnit)
                 .retryDelayAlgorithm(FileQueue.RetryDelayAlgorithm.EXPONENTIAL).retryDelay(RETRYDELAY).maxRetryDelay(MAXRETRYDELAY);
         queue.startQueue(config);
-        producedTest3.set(0);
-        processedTest3.set(0);
+        producedTestWithRetryAndExponentialDelay.set(0);
+        processedTestWithRetryAndExponentialDelay.set(0);
+
         for (int i = 0; i < ROUNDS; i++) {
-            producedTest3.incrementAndGet();
-            queue.queueItem(new TestRetryFileQueueItem(i));
+            producedTestWithRetryAndExponentialDelay.incrementAndGet();
+            queue.queueItem(new TestFileQueueItem(i));
         }
-        done(queue, producedTest3, processedTest3, retryTest3);
+        done(queue, producedTestWithRetryAndExponentialDelay, processedTestWithRetryAndExponentialDelay, retryTestWithRetryAndExponentialDelay);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
     }
 
+    /* Test With Expiry */
+    
     @Test
     public void testWithExpiry() throws Exception {
-        String queueName = "test4";
-        Path db = setup("filequeue test with expiry", queueName, producedTest4, processedTest4);
+        String queueName = "testWithExpiry";
+        Path db = setup("filequeue test with expiry", queueName, producedTestWithExpiry, processedTestWithExpiry);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestRetryFileQueueItem.class,new TestExpireConsumer()).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestExpireConsumer()).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
                 .retryDelay(RETRYDELAY).retryDelayUnit(RetryDelayTimeUnit).expiration(new TestExpiration())
                 .retryDelayAlgorithm(FileQueue.RetryDelayAlgorithm.EXPONENTIAL).retryDelay(RETRYDELAY)
                 .maxRetryDelay(MAXRETRYDELAY);
         queue.startQueue(config);
-        producedTest4.set(0);
-        processedTest4.set(0);
+        producedTestWithExpiry.set(0);
+        processedTestWithExpiry.set(0);
+
         for (int i = 0; i < ROUNDS; i++) {
-            producedTest4.incrementAndGet();
-            queue.queueItem(new TestRetryFileQueueItem(i));
+            producedTestWithExpiry.incrementAndGet();
+            queue.queueItem(new TestFileQueueItem(i));
         }
-        done(queue, producedTest4,expireTest4, retryTest4);
+        done(queue, producedTestWithExpiry,expireTestWithExpiry, retryTestWithExpiry);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
     }
 
+    /* Test With Retries And Wait */
+    
     @Test
-    public void testWithRetries2() throws Exception {
-        String queueName = "test5";
-        Path db = setup("filequeue test with retries2", queueName, producedTest5, processedTest5);
+    public void testWithRetriesAndWait() throws Exception {
+        String queueName = "testWithRetriesAndWait";
+        Path db = setup("filequeue test with retries and block", queueName, producedTestWithRetriesAndWait, processedTestWithRetriesAndWait);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestRetryFileQueueItem.class,new TestExpireConsumer2()).maxQueueSize(SMALLQUEUESIZE)
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestExpireConsumer2()).maxQueueSize(SMALLQUEUESIZE)
                 .retryDelay(RETRYDELAY).retryDelayUnit(RetryDelayTimeUnit).expiration(new TestExpiration2())
                  .maxRetryDelay(MAXRETRYDELAY).persistRetryDelay(PERSISTENT_RETRY_DELAY_SEC)
                 .persistRetryDelayUnit(TimeUnit.SECONDS);
         queue.startQueue(config);
         Assert.assertEquals(SMALLQUEUESIZE,queue.availablePermits());
-        producedTest5.set(0);
-        processedTest5.set(0);
-        availableSlotTest5.set(0);
+        producedTestWithRetriesAndWait.set(0);
+        processedTestWithRetriesAndWait.set(0);
+        availableSlotTestWithRetriesAndWait.set(0);
         QueueCallbackTest queueCallbackTest = new QueueCallbackTest();
+
         for (int i = 0; i < ROUNDS / 10; i++) {
             for (int j = 0; j < 10; j++) {
-                producedTest5.incrementAndGet();
-                queue.queueItem(new TestRetryFileQueueItem(i * 10 + j), queueCallbackTest, 1, TimeUnit.HOURS);
+                producedTestWithRetriesAndWait.incrementAndGet();
+                queue.queueItem(new TestFileQueueItem(i * 10 + j), queueCallbackTest, 1, TimeUnit.HOURS);
             }
         }
-        done(queue, producedTest5, processedTest5, retryTest5);
-        System.out.println("available slots "+availableSlotTest5.get());
-        Assert.assertEquals(ROUNDS,availableSlotTest5.get());
+        done(queue, producedTestWithRetriesAndWait, processedTestWithRetriesAndWait, retryTestWithRetriesAndWait);
+        System.out.println("available slots "+availableSlotTestWithRetriesAndWait.get());
+        Assert.assertEquals(ROUNDS,availableSlotTestWithRetriesAndWait.get());
         System.out.println("available permits "+queue.availablePermits());
         Assert.assertEquals(SMALLQUEUESIZE,queue.availablePermits());
         queue.stopQueue();
@@ -190,37 +204,68 @@ public class FileQueueTest {
 
         @Override
         public void availableSlot(FileQueueItem fileQueueItem) {
-            availableSlotTest5.incrementAndGet();
+            availableSlotTestWithRetriesAndWait.incrementAndGet();
         }
     }
+
+    /* Test With Queue Persistence */
+
     @Test
     public void testPersist() throws Exception {
-        String queueName = "testpersist";
-        Path db = setup("filequeue test with persist", queueName, producedTest6, processedTest6);
+        String queueName = "testPersist";
+        Path db = setup("filequeue test with persist", queueName, producedTestPersist, processedTestPersist);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestRetryFileQueueItem.class,new TestShutdownConsumer()).maxQueueSize(MAXQUEUESIZE)
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestShutdownConsumer()).maxQueueSize(MAXQUEUESIZE)
                 .retryDelay(RETRYDELAY).retryDelayUnit(RetryDelayTimeUnit).expiration(new TestExpiration2())
                 .maxRetryDelay(MAXRETRYDELAY).persistRetryDelay(PERSISTENT_RETRY_DELAY_SEC)
                 .persistRetryDelayUnit(TimeUnit.SECONDS);
+        producedTestPersist.set(0);
+        processedTestPersist.set(0);
 
-        producedTest6.set(0);
-        processedTest6.set(0);
         for (int j = 0 ; j < (ROUNDS / 10); j++) {
             queue.startQueue(config);
             for (int i = 0 ; i < 10; i++) {
-                producedTest6.incrementAndGet();
-                queue.queueItem(new TestRetryFileQueueItem(j*10 + i));
+                producedTestPersist.incrementAndGet();
+                queue.queueItem(new TestFileQueueItem(j*10 + i));
             }
             queue.stopQueue();
         }
         System.out.println("start/stops: "+ROUNDS);
         queue.startQueue(config);
-        done(queue, producedTest6,processedTest6, null);
+        done(queue, producedTestPersist,processedTestPersist, null);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
     }
 
+    /* Test With Blockage */
+
+    @Test
+    public void testBlockage() throws Exception {
+        String queueName = "testWithBlockage";
+        Path db = setup("filequeue test with blockage", queueName, producedTestWithRetries, processedTestWithRetries);
+        MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
+        FileQueue queue = FileQueue.fileQueue();
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestBlockConsumer()).maxQueueSize(MAXQUEUESIZE);
+        queue.startQueue(config);
+        producedTestWithBlockage.set(0);
+        processedTestWithBlockage.set(0);
+        block = true;
+        for (int i = 0; i < BLOCKS; i++) {
+            producedTestWithBlockage.incrementAndGet();
+            queue.queueItem(new TestFileQueueItem(i));
+        }
+        block = false;
+        try { Thread.sleep(4000); } catch (Exception e) {}
+        for (int i = 0; i < ROUNDS - BLOCKS; i++) {
+            producedTestWithBlockage.incrementAndGet();
+            queue.queueItem(new TestFileQueueItem(i));
+        }
+        MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
+        done(queue, producedTestWithBlockage, processedTestWithBlockage, null);
+        queue.stopQueue();
+        MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
+    }
 
     /* Implement Queue Item */
 
@@ -292,7 +337,7 @@ public class FileQueueTest {
 
         @Override
         public Result consume(FileQueueItem item){
-            processedTest1.incrementAndGet();
+            processedTestWithoutRetries.incrementAndGet();
             return Result.SUCCESS;
         }
     }
@@ -311,7 +356,7 @@ public class FileQueueTest {
     static Consumer.Result retry(FileQueueItem item, AtomicInteger processed, Map<String,AtomicInteger> retries) {
         try {
             incRetry(item,retries);
-            TestRetryFileQueueItem retryFileQueueItem = (TestRetryFileQueueItem) item;
+            TestFileQueueItem retryFileQueueItem = (TestFileQueueItem) item;
             if (retryFileQueueItem.getTryCount() == RETRIES) {
                 processed.incrementAndGet();
                 return Consumer.Result.SUCCESS;
@@ -330,16 +375,31 @@ public class FileQueueTest {
         public TestRetryConsumer2() { }
 
         public Result consume(FileQueueItem item) {
-            return retry(item, processedTest2, retryTest2);
+            return retry(item, processedTestWithRetries, retryTestWithRetries);
         }
     }
+
+
+    static class TestBlockConsumer implements Consumer<TestFileQueueItem> {
+
+        public TestBlockConsumer() { }
+
+        public Result consume(TestFileQueueItem item) {
+            if (item.getId() < BLOCKS) {
+                while(block) { try { Thread.sleep(10); } catch (Exception interrupted) { Thread.currentThread().interrupt(); } };
+            }
+            processedTestWithBlockage.incrementAndGet();
+            return Result.SUCCESS;
+        }
+    }
+
 
     static class TestRetryConsumer3  implements Consumer<FileQueueItem> {
 
         public TestRetryConsumer3() { }
 
         public Result consume(FileQueueItem item) {
-            return retry(item, processedTest3, retryTest3);
+            return retry(item, processedTestWithRetryAndExponentialDelay, retryTestWithRetryAndExponentialDelay);
         }
     }
 
@@ -348,8 +408,8 @@ public class FileQueueTest {
         public TestExpireConsumer() { }
 
         public Result consume(FileQueueItem item){
-            processedTest4.incrementAndGet();
-            incRetry(item,retryTest4);
+            processedTestWithExpiry.incrementAndGet();
+            incRetry(item,retryTestWithExpiry);
             return Result.FAIL_REQUEUE;
         }
     }
@@ -360,9 +420,9 @@ public class FileQueueTest {
         public TestExpireConsumer2() { }
 
         public Result consume(FileQueueItem item){
-            incRetry(item,retryTest5);
+            incRetry(item,retryTestWithRetriesAndWait);
             if (item.getTryCount() == RETRIES) {
-                processedTest5.incrementAndGet();
+                processedTestWithRetriesAndWait.incrementAndGet();
                 return Result.SUCCESS;
             } else
                 return Result.FAIL_REQUEUE;
@@ -375,7 +435,7 @@ public class FileQueueTest {
 
         @Override
         public void expire(FileQueueItem item) {
-            expireTest4.incrementAndGet();
+            expireTestWithExpiry.incrementAndGet();
         }
     }
 
@@ -388,37 +448,12 @@ public class FileQueueTest {
     }
 
 
-    /* Implement File Queue */
-
-    static class TestRetryFileQueueItem extends FileQueueItem {
-
-        Integer id;
-
-        public TestRetryFileQueueItem() { super(); }
-
-        private TestRetryFileQueueItem(Integer id) {
-            super();
-            this.id = id;
-        }
-
-        @Override
-        public String toString() {
-            return String.valueOf(id);
-        }
-
-        public Integer getId() {
-            return id;
-        }
-
-    }
-
-
     static class TestShutdownConsumer implements Consumer<FileQueueItem> {
 
         public TestShutdownConsumer() { }
 
         public Result consume(FileQueueItem item) throws InterruptedException {
-            processedTest6.incrementAndGet();
+            processedTestPersist.incrementAndGet();
             return Result.SUCCESS;
         }
     }
