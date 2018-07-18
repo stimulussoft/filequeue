@@ -60,7 +60,7 @@ public class MVStoreQueue implements Comparable<MVStoreQueue> {
     }
 
     /**
-     * Creates instance of persistent filequeue.
+     * This class is for internal use only. Please refer to FileQueue class.
      *
      * @param queueDir  filequeue database environment directory path
      * @param queueName descriptive filequeue name

@@ -25,20 +25,53 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
+ * <p>
  * FileQueue is a fast and efficient persistent filequeue written in Java. FileQueue is backed by H2 Database MVStore.
  * To cater for situations where filequeue items could not be processed, it supports retry logic. As the filequeue is
  * persistent, if the program is quit and started again, it will begin where it left off. Refer to
- * <a href="https://github.com/stimulussoft/filequeue">filequeue github page</a> for more info.
+ * <a href="https://github.com/stimulussoft/filequeue">filequeue github page</a> for more info.<br/>
+ * To see example, refer to com.stimulussoft.filequeue.FileQueueTest<br>
+ * </p>
  * <p>
- * 1) Implement a Jackson serialization POJO by extending FileQueueItem
- * 2) Implement a consumer class that extends Consumer
- * b) implement consume(item) to perform actual processing work
- * 3) Call config() to configure filequeue
- * 4) Call startQueue(config) to start the filequeue
- * 5) Call stopQueue() to stop the filequeue processing
+ * To attain higher levels of performance, File Queue will transfer queued items directly to consumers without hitting
+ * the database provided there are consumers available. If all consumers are busy, File Queue will automatically
+ * persist queued items to the database.
+ * </p>
  * <p>
- * To see example, refer to com.stimulussoft.filequeue.FileQueueTest
- *
+ * File Queue also offers both fixed and exponential back-off retry.
+ * </p>
+ * <p>
+ * Implementation strategy:<br>
+ * 1) Implement a Jackson serialization POJO by extending FileQueueItem<br>
+ * 2) Implement a consumer class that extends Consumer<br>
+ * b) implement consume(item) to perform actual processing work<br>
+ * 3) Call config() to configure filequeue<br>
+ * 4) Call startQueue(config) to start the filequeue<br>
+ * 5) Call stopQueue() to stop the filequeue processing<br>
+ * </p>
+ * <p>
+ * Example usage below:<br>
+ *<pre>{@code
+ * FileQueue queue = FileQueue.fileQueue();
+ * FileQueue.Config config = FileQueue.config(queueName,queuePath,TestFileQueueItem.class, new TestConsumer())
+ *                           .maxQueueSize(MAXQUEUESIZE)
+ *                           .retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.EXPONENTIAL)
+ *                           .retryDelay(RETRYDELAY).maxRetryDelay(MAXRETRYDELAY)
+ *                           .maxRetries(0);
+ *                           .persistRetryDelay(PERSISTENTRETRYDELAY);
+ * queue.startQueue(config);
+ * for (int i = 0; i < ROUNDS; i++)
+ *     queue.queueItem(new TestFileQueueItem(i));
+ * // when finished call stopQueue
+ * queue.stopQueue();
+ *}</pre>
+ * </p>
+ * <p>
+ * To see example, refer to com.stimulussoft.filequeue.FileQueueTest<br>
+ * </p>
+ * <p>
+ *  To see example, refer to com.stimulussoft.filequeue.FileQueueTest<br>
+ * </p>
  * @author Jamie Band (Stimulus Software)
  * @author Valentin Popov (Stimulus Software)
  */
@@ -49,7 +82,6 @@ public final class FileQueue<T> {
     private ShutdownHook shutdownHook;
     private final AtomicBoolean isStarted = new AtomicBoolean();
     private final AdjustableSemaphore permits = new AdjustableSemaphore();
-    private int minFreeSpaceMb = 20;
     private QueueProcessor<T> transferQueue;
     private Config config;
 
@@ -116,12 +148,26 @@ public final class FileQueue<T> {
         }
     }
 
+    /**
+     * <p>
+     *  Queue configuration builder
+     * </p>
+     **/
+
     public static class Config<T> {
 
         private int maxQueueSize = Integer.MAX_VALUE;
         private Consumer consumer;
 
         private QueueProcessor.Builder builder = QueueProcessor.builder();
+
+        /**
+         * Rather use FileQueue.config(..) to build a new queue configuration.
+         * @param queueName name of the queue. Any name can be chosen, so long as it is unique among queues.
+         * @param queuePath writeable path where the queue database will be stored
+         * @param type type of queue item
+         * @param consumer callback to process items in the queue
+         */
 
         public Config(String queueName, Path queuePath, Class type, Consumer consumer) {
             builder = builder.type(type).queueName(queueName).queuePath(queuePath);
@@ -380,26 +426,6 @@ public final class FileQueue<T> {
             if (!permits.tryAcquire(acquireWait, acquireWaitUnit))
                 throw new IOException("filequeue " + transferQueue.getQueuePath() + " is full. {maxQueueSize='" + config.maxQueueSize + "'}");
      }
-
-    /**
-     * Set minimum free space to allow before a new item will be accepted on the queue
-     *
-     * @param minFreeSpaceMb free space in MB
-     */
-
-    public void setMinFreeSpaceMb(int minFreeSpaceMb) {
-        this.minFreeSpaceMb = minFreeSpaceMb;
-    }
-
-    /**
-     * Return minimum free space to allow before a new item will be accepted on the queue
-     *
-     * @return free space in MB
-     */
-
-    public int getMinFeeSpaceMb() {
-        return minFreeSpaceMb;
-    }
 
     /**
      * Return no items in filequeue

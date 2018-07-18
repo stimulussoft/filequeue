@@ -16,7 +16,8 @@ package com.stimulussoft.filequeue.processor;
  */
 
 /**
- * Consumer
+ * Implement this interface to receive notification when a queued item has expired due to maximum number of
+ * retries exceeded.
  *
  * @author Jamie Band (Stimulus Software)
  * @author Valentin Popov (Stimulus Software)

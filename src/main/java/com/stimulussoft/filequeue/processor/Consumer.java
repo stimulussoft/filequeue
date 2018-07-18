@@ -16,7 +16,8 @@ package com.stimulussoft.filequeue.processor;
  */
 
 /**
- * Consumer
+ * Implement this interface to consume items on the queue. File Queue will call the consume method each time an item
+ * is available for processing.
  *
  * @author Jamie Band (Stimulus Software)
  * @author Valentin Popov (Stimulus Software)
@@ -25,17 +26,33 @@ package com.stimulussoft.filequeue.processor;
 public interface Consumer<T> {
 
     /**
-     * Result of consumption
-     */
+     * Result of consumption.
+     *
+     **/
 
     enum Result {
+
+        /**
+         * Processing of item was successful. Do not requeue.
+         **/
+
         SUCCESS, /* process was successful */
+
+        /**
+         * Processing of item failed, however retry later.
+         **/
+
         FAIL_REQUEUE,  /* process failed, but must be requeued */
+
+        /**
+         * Processing of item failed permanently. No retry.
+         **/
+
         FAIL_NOQUEUE /* process failed, don't requeue */
     }
 
     /**
-     * Consume the given item.
+     * Consume the given item. This callback is called by FileQueue when an item is available for processing.
      *
      * @param item to handle.
      * @return {@code SUCCESS} if the item was processed successfully and shall be removed from the filequeue.

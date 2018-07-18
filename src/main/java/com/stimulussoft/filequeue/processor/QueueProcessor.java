@@ -29,7 +29,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /**
- * Queue processor. This class is thread-safe.anupo
+ * Queue processor. This class is for internal use only. Please refer to FileQueue class.
  *
  * @author Valentin Popov
  * @author Jamie Band
