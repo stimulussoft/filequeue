@@ -25,13 +25,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
- * <p>
  * FileQueue is a fast and efficient persistent filequeue written in Java. FileQueue is backed by H2 Database MVStore.
  * To cater for situations where filequeue items could not be processed, it supports retry logic. As the filequeue is
  * persistent, if the program is quit and started again, it will begin where it left off. Refer to
- * <a href="https://github.com/stimulussoft/filequeue">filequeue github page</a> for more info.<br/>
+ * <a href="https://github.com/stimulussoft/filequeue">filequeue github page</a> for more info.<br>
  * To see example, refer to com.stimulussoft.filequeue.FileQueueTest<br>
- * </p>
  * <p>
  * To attain higher levels of performance, File Queue will transfer queued items directly to consumers without hitting
  * the database provided there are consumers available. If all consumers are busy, File Queue will automatically
@@ -49,7 +47,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 4) Call startQueue(config) to start the filequeue<br>
  * 5) Call stopQueue() to stop the filequeue processing<br>
  * </p>
- * <p>
  * Example usage below:<br>
  *<pre>{@code
  * FileQueue queue = FileQueue.fileQueue();
@@ -65,7 +62,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * // when finished call stopQueue
  * queue.stopQueue();
  *}</pre>
- * </p>
  * <p>
  * To see example, refer to com.stimulussoft.filequeue.FileQueueTest<br>
  * </p>
