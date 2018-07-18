@@ -55,3 +55,4 @@ fabric.properties
 .idea/httpRequests
 /.idea/
 target/
+.DS_Store
