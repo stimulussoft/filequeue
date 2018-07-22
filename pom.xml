@@ -5,7 +5,7 @@
     <artifactId>filequeue</artifactId>
     <name>file queue project</name>
 
-    <version>1.0.30</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
     <description>Light weight, high performance, simple, reliable and persistent queue</description>
     <url>https://github.com/stimulussoft/filequeue</url>
@@ -75,7 +75,17 @@
             </url>
         </repository>
     </distributionManagement>
-
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.0.1</version>
+                <configuration>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
 
     <build>
         <plugins>
@@ -98,6 +108,16 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.3</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>2.9</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
