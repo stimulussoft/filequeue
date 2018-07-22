@@ -292,6 +292,7 @@ public class QueueProcessor<T> {
     public void close() {
         doRun = false;
         cleanupTaskScheduler.ifPresent(cleanupTask -> cleanupTask.cancel(true));
+        mvstoreCleanUPScheduler.shutdown();
         restorePolled.register();
         restorePolled.arriveAndAwaitAdvance();
         mvStoreQueue.close();

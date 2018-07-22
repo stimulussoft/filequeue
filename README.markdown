@@ -20,7 +20,7 @@ The steps for integration are as follows:
     <dependency>
         <groupId>com.stimulussoft</groupId>
         <artifactId>filequeue</artifactId>
-        <version>1.0.29</version>
+        <version>1.0.31</version>
         <scope>test</scope>
     </dependency>
 
@@ -30,7 +30,7 @@ The steps for integration are as follows:
   5. Call startQueue() to start the queue
   6. Call stopQueue() to stop the queue processing
 
-For API docs, refer to the File Queue [JavaDocs](http://javadoc.io/doc/com.stimulussoft/filequeue/1.0.29).
+For API docs, refer to the File Queue [JavaDocs](http://javadoc.io/doc/com.stimulussoft/filequeue/1.0.31).
 
 Here's an example snippet of code showing the creation of the queue, submission of an item for processing, and the consumption of that item. 
 
