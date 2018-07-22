@@ -47,7 +47,7 @@ public class QueueProcessor<T> {
             ThreadUtil.getFlexibleThreadFactory("filequeue-worker", false),
             new DelayRejectPolicy());
     private static final ScheduledExecutorService mvstoreCleanUPScheduler = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(),
-            ThreadUtil.getFlexibleThreadFactory("mvstore-cleanup", false));
+            ThreadUtil.getFlexibleThreadFactory("mvstore-cleanup", true));
     static {
         MoreExecutors.addDelayedShutdownHook(executorService, 60L, TimeUnit.SECONDS);
         MoreExecutors.addDelayedShutdownHook(mvstoreCleanUPScheduler, 60L, TimeUnit.SECONDS);
@@ -292,7 +292,6 @@ public class QueueProcessor<T> {
     public void close() {
         doRun = false;
         cleanupTaskScheduler.ifPresent(cleanupTask -> cleanupTask.cancel(true));
-        mvstoreCleanUPScheduler.shutdown();
         restorePolled.register();
         restorePolled.arriveAndAwaitAdvance();
         mvStoreQueue.close();

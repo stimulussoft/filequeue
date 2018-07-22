@@ -222,17 +222,16 @@ public class FileQueueTest {
                 .persistRetryDelayUnit(TimeUnit.SECONDS);
         producedTestPersist.set(0);
         processedTestPersist.set(0);
-
+        queue.startQueue(config);
         for (int j = 0 ; j < (ROUNDS / 10); j++) {
-            queue.startQueue(config);
             for (int i = 0 ; i < 10; i++) {
                 producedTestPersist.incrementAndGet();
                 queue.queueItem(new TestFileQueueItem(j*10 + i));
             }
             queue.stopQueue();
+            queue.startQueue(config);
         }
         System.out.println("start/stops: "+ROUNDS);
-        queue.startQueue(config);
         done(queue, producedTestPersist,processedTestPersist, null);
         queue.stopQueue();
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
