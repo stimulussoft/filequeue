@@ -447,6 +447,16 @@ public final class FileQueue<T> {
         }
     }
 
+
+    /**
+     * Destroy processor thread pool. Call to explicitly shutdown all pools.
+     *
+     */
+
+    public static void destroy() {
+        QueueProcessor.destroy();
+    }
+
     public static FileQueue<FileQueueItem> fileQueue() { return new FileQueue<>(); }
 
 

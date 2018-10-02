@@ -54,6 +54,11 @@ public class QueueProcessor<T> {
 
     }
 
+    public static void destroy() {
+        MoreExecutors.shutdownAndAwaitTermination(executorService, 60L, TimeUnit.SECONDS);
+        MoreExecutors.shutdownAndAwaitTermination(mvstoreCleanUPScheduler, 60L, TimeUnit.SECONDS);
+    }
+
     public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL}
 
     private final ObjectMapper objectMapper;

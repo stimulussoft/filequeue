@@ -5,7 +5,7 @@
     <artifactId>filequeue</artifactId>
     <name>file queue project</name>
 
-    <version>1.0.31</version>
+    <version>1.0.32</version>
     <packaging>jar</packaging>
     <description>Light weight, high performance, simple, reliable and persistent queue</description>
     <url>https://github.com/stimulussoft/filequeue</url>
