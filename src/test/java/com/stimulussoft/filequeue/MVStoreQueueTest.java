@@ -45,7 +45,7 @@ public class MVStoreQueueTest {
     MVStoreQueue queue;
     ConcurrentLinkedQueue<byte[]> producerQueue = new ConcurrentLinkedQueue<>();
     ConcurrentLinkedQueue<byte[]> consumerQueue = new ConcurrentLinkedQueue<>();
-    int toGenerate = 100000;
+    int toGenerate = 20000;
     CountDownLatch toPush = new CountDownLatch(toGenerate);
     CountDownLatch toPoll = new CountDownLatch(toGenerate);
 

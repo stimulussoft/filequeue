@@ -87,14 +87,6 @@ public class ThreadUtil {
         }
     }
 
-    public static Thread exec(Executor executor, Runnable runnable, String name, boolean daemon) {
-        Thread t = new Thread(runnable);
-        t.setName(name);
-        t.setDaemon(daemon);
-        executor.execute(t);
-        return t;
-    }
-
     public static void checkInterrupt() throws InterruptedException {
         if (Thread.currentThread().isInterrupted()) {
             Thread.currentThread().interrupt();

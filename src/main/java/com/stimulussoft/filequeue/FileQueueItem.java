@@ -47,11 +47,11 @@ public abstract class FileQueueItem implements Serializable {
     }
 
     public Date getTryDate() {
-        return tryDate;
+        return new Date(tryDate.getTime());
     }
 
     public void setTryDate(Date date) {
-        this.tryDate = date;
+        this.tryDate = new Date(date.getTime());
     }
 
     public int getTryCount() {

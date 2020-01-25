@@ -87,13 +87,14 @@ public class MVStoreQueue implements Comparable<MVStoreQueue> {
         mvMap = store.openMap(queueName);
         if (!mvMap.isEmpty())
             tailKey.set(mvMap.lastKey());
+
     }
 
     private MVStore getOpenStore() {
         Path dbName = getDBName();
         String path = dbName.toUri().getScheme().equals("jimfs") ?
                 dbName.toUri().toString() : dbName.toString();
-        return new MVStore.Builder().fileName(path).cacheSize(1).open();
+        return new MVStore.Builder().fileName(path).cacheSize(1).autoCommitDisabled().open();
     }
 
     public Path getQueueDir() {
@@ -177,6 +178,10 @@ public class MVStoreQueue implements Comparable<MVStoreQueue> {
         result = 31 * result + store.hashCode();
         result = 31 * result + getQueueDir().hashCode();
         return result;
+    }
+
+    public void commit() {
+        store.commit();
     }
 
     private static class JimFSDecorator extends FilePath {
@@ -332,5 +337,6 @@ public class MVStoreQueue implements Comparable<MVStoreQueue> {
         private FilePath getPath(Path path) {
             return new JimFSDecorator(path);
         }
+
     }
 }

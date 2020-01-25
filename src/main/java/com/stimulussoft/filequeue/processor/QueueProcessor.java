@@ -455,6 +455,8 @@ public class QueueProcessor<T> {
                     }
                 } catch (Exception io) {
                     logger.error("Failed to process item.", io);
+                } finally {
+                    mvStoreQueue.commit();
                 }
             }
         }
