@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -47,7 +48,7 @@ public abstract class FileQueueItem implements Serializable {
     }
 
     public Date getTryDate() {
-        return new Date(tryDate.getTime());
+        return Objects.nonNull(tryDate) ? new Date(tryDate.getTime()) : null;
     }
 
     public void setTryDate(Date date) {
