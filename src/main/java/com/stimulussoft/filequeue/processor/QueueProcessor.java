@@ -139,7 +139,7 @@ public class QueueProcessor<T> {
         public int getMaxTries() { return maxTries; }
 
         /**
-         * Set fixed delay between retries
+         * Set fixed delay in retryDelayUnit between retries
          * @param retryDelay             delay between retries
          * @return builder
          */
@@ -147,7 +147,7 @@ public class QueueProcessor<T> {
         public int getRetryDelay() { return retryDelay; }
 
         /**
-         * Set maximum delay between retries assuming exponential backoff enabled
+         * Set maximum delay in retryDelayUnit between retries assuming exponential backoff enabled
          * @param maxRetryDelay            maximum delay between retries
          * @return builder
          */
@@ -155,7 +155,7 @@ public class QueueProcessor<T> {
         public int getMaxRetryDelay() { return maxRetryDelay; }
 
         /**
-         * Set delay between retries when processing items from queue database (on disk). Items are only put on disk
+         * Set delay between retries in persistRetryDelayUnit when processing items from queue database (on disk). Items are only put on disk
          * when the in-memory-processing-queue is full
          * @param persistRetryDelay   maximum delay between retries for items on disk
          * @return builder
@@ -164,7 +164,7 @@ public class QueueProcessor<T> {
         public int getPersistRetryDelay() { return persistRetryDelay; }
 
         /**
-         * Set persistent retry delay time unit
+         * Set persistent retry delay time unit. Default is seconds.
          * @param persistRetryDelayUnit           persistent retry delay time unit
          * @return builder
          */
@@ -172,7 +172,7 @@ public class QueueProcessor<T> {
         public TimeUnit getPersistRetryDelayUnit() { return persistRetryDelayUnit; }
 
         /**
-         * Set retry delay time unit
+         * Set retry delay time unit. Default is seconds.
          * @param retryDelayUnit           retry delay time unit
          * @return builder
          */
@@ -248,7 +248,7 @@ public class QueueProcessor<T> {
         else
             this.persistRetryDelay  = builder.persistRetryDelay;
         this.persistRetryDelayUnit  = builder.persistRetryDelayUnit;
-        cleanupTaskScheduler = Optional.of(mvstoreCleanUPScheduler.scheduleWithFixedDelay(new MVStoreCleaner(this), 0, persistRetryDelay, retryDelayUnit));
+        cleanupTaskScheduler = Optional.of(mvstoreCleanUPScheduler.scheduleWithFixedDelay(new MVStoreCleaner(this), 0, persistRetryDelay, persistRetryDelayUnit));
     }
 
     /**
@@ -331,16 +331,16 @@ public class QueueProcessor<T> {
     private boolean isTimeToRetry(T item) {
         switch (retryDelayAlgorithm) {
             case EXPONENTIAL:
-                int tryDelay = ((int) Math.round(Math.pow(2,  ((FileQueueItem) item).getTryCount())));
+                long tryDelay = Math.round(Math.pow(2,  ((FileQueueItem) item).getTryCount()));
                 tryDelay = tryDelay > maxRetryDelay ? maxRetryDelay : tryDelay;
                 tryDelay = tryDelay < retryDelay ? retryDelay : tryDelay;
-                return isTimeToRetry(item, tryDelay);
-            default:  return isTimeToRetry(item, retryDelay);
+                return isTimeToRetry(item, tryDelay, retryDelayUnit);
+            default:  return isTimeToRetry(item, retryDelay, retryDelayUnit);
         }
     }
 
-    private boolean isTimeToRetry(T item, int retryDelay) {
-        return ((FileQueueItem) item).getTryDate() == null  || dateDiff(((FileQueueItem) item).getTryDate(), new Date(), retryDelayUnit) > retryDelay;
+    private boolean isTimeToRetry(T item, long retryDelay, TimeUnit timeUnit) {
+        return ((FileQueueItem) item).getTryDate() == null  || dateDiff(((FileQueueItem) item).getTryDate(), new Date(), timeUnit) > retryDelay;
     }
 
     private T deserialize(final byte[] data) {
@@ -492,13 +492,13 @@ public class QueueProcessor<T> {
     public int getMaxTries() { return maxTries; }
 
     /**
-     * Get fixed delay between retries
+     * Get fixed delay in retryDelayUnit between retries
      * @return delay between retries
      */
     public int getRetryDelay() { return retryDelay; }
 
     /**
-     * Get maximum delay between retries assuming exponential backoff enabled
+     * Get maximum delay in retryDelayUnit between retries assuming exponential backoff enabled
      * @return maximum delay between retries
      */
     public int getMaxRetryDelay() { return maxRetryDelay; }
