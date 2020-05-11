@@ -424,24 +424,27 @@ public class QueueProcessor<T> {
 
         @Override
         public void run() {
+            byte[] pushBack = null;
             if (doRun && !mvStoreQueue.isEmpty()) {
                 try {
                     byte[] toDeserialize;
                     while ((toDeserialize = mvStoreQueue.poll()) != null) {
                         restorePolled.register();
                         try {
-                            if (!doRun) {
+                            if (!doRun || Arrays.equals(toDeserialize, pushBack)) {
                                 mvStoreQueue.push(toDeserialize);
                                 break;
                             }
                             final T item = deserialize(toDeserialize);
                             if (item == null) continue;
-
                             if (isNeedRetry(item)) {
                                 if (isTimeToRetry(item))
                                     queueProcessor.submit(item);
-                                else
+                                else {
                                     mvStoreQueue.push(toDeserialize);
+                                    if (pushBack == null)
+                                        pushBack = toDeserialize;
+                                }
                             } else {
                                 if (expiration != null)
                                     expiration.expire(item);
@@ -449,6 +452,8 @@ public class QueueProcessor<T> {
                         } catch (IllegalStateException e) {
                             logger.error("Failed to process item.", e);
                             mvStoreQueue.push(toDeserialize);
+                            if (pushBack == null)
+                                pushBack = toDeserialize;
                         } finally {
                             restorePolled.arriveAndDeregister();
                         }
