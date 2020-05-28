@@ -1,6 +1,6 @@
 # Introduction
 
-The File Queue project offers a light weight, high performance, simple, reliable and persistent queue for Java applications. All producers and consumers run within a single Java runtime.
+The File Queue project offers a light weight, high performant, simple, reliable and persistent queue for Java applications. All producers and consumers run within a single Java runtime.
 To provide persistence, File Queue leverages the [MVStore](http://www.h2database.com/html/mvstore.html) database engine from H2. Queue items are regular Java POJOs, serialized into Json using [jackson](http://jackson.codehaus.org/).
 
 To attain higher levels of performance, File Queue will transfer queued items directly to consumers without hitting the database provided there are consumers available. If all consumers are busy, file queue will automatically persist queued items to the database.
@@ -21,14 +21,14 @@ The steps for integration are as follows:
         <groupId>com.stimulussoft</groupId>
         <artifactId>filequeue</artifactId>
         <version>1.1.3</version>
-        <scope>test</scope>
     </dependency>
 
-  2. Extend Consumer<FileQueueItem> and implement consume(FileQueueItem) to perform actual processing work.
-  3. Create a new FileQueue object
-  4. Call config() to construct an appropriate configuration
+  2. Implement a Jackson serialization POJO by extending FileQueueItem
+  3. Extend Consumer class and implement consume(FileQueueItem) to process items
+  3. Instantiate a FileQueue object and call config() to configure
   5. Call startQueue() to start the queue
   6. Call stopQueue() to stop the queue processing
+  7. Call FileQueue.destroy() to shutdown all static threads (optional)
 
 For API docs, refer to the File Queue [JavaDocs](http://javadoc.io/doc/com.stimulussoft/filequeue/1.1.2).
 
