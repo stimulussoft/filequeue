@@ -1,6 +1,6 @@
 # Introduction
 
-The File Queue project offers a light weight, high performant, simple, reliable and persistent queue for Java applications. All producers and consumers run within a single Java runtime.
+The File Queue project offers a light weight, performant, simple, reliable and persistent queue for Java applications. All producers and consumers run within a single Java runtime.
 To provide persistence, File Queue leverages the [MVStore](http://www.h2database.com/html/mvstore.html) database engine from H2. Queue items are regular Java POJOs, serialized into Json using [jackson](http://jackson.codehaus.org/).
 
 To attain higher levels of performance, File Queue will transfer queued items directly to consumers without hitting the database provided there are consumers available. If all consumers are busy, file queue will automatically persist queued items to the database.
