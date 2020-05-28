@@ -19,6 +19,7 @@ import com.stimulussoft.filequeue.processor.Expiration;
 import com.stimulussoft.filequeue.processor.QueueProcessor;
 import com.stimulussoft.util.AdjustableSemaphore;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -165,7 +166,7 @@ public final class FileQueue<T> {
          * @param consumer callback to process items in the queue
          */
 
-        public Config(String queueName, Path queuePath, Class type, Consumer consumer) {
+        public Config(String queueName, Path queuePath, Type type, Consumer consumer) {
             builder = builder.type(type).queueName(queueName).queuePath(queuePath);
             this.consumer = consumer;
         }
@@ -193,12 +194,12 @@ public final class FileQueue<T> {
          * @param type                   filequeueitem type
          * @return config configuration
          */
-        public Config type(Class type) throws IllegalArgumentException {
-            if (type == FileQueueItem.class || !FileQueueItem.class.isAssignableFrom(type))
+        public Config type(Type type) throws IllegalArgumentException {
+            if (type == FileQueueItem.class || !FileQueueItem.class.isAssignableFrom(type.getClass()))
                 throw new IllegalArgumentException("type must be a subclass of filequeueitem");
             builder = builder.type(type); return this;
         }
-        public Class getType() { return builder.getType(); }
+        public Type getType() { return builder.getType(); }
 
         /**
          * Maximum number of tries. Set to zero for infinite.
