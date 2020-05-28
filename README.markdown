@@ -24,7 +24,7 @@ The steps for integration are as follows:
     </dependency>
 
   2. Implement a Jackson serialization POJO by extending FileQueueItem
-  3. Extend Consumer class and implement consume(FileQueueItem) to process items
+  3. Implement consume(FileQueueItem) on Consumer interface to process items
   3. Instantiate a FileQueue object and call config() to configure
   5. Call startQueue() to start the queue
   6. Call stopQueue() to stop the queue processing
