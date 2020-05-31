@@ -20,7 +20,7 @@ The steps for integration are as follows:
     <dependency>
         <groupId>com.stimulussoft</groupId>
         <artifactId>filequeue</artifactId>
-        <version>1.1.3</version>
+        <version>1.1.5</version>
     </dependency>
 
   2. Implement a Jackson serialization POJO by extending FileQueueItem
@@ -30,7 +30,7 @@ The steps for integration are as follows:
   6. Call stopQueue() to stop the queue processing
   7. Call FileQueue.destroy() to shutdown all static threads (optional)
 
-For API docs, refer to the File Queue [JavaDocs](http://javadoc.io/doc/com.stimulussoft/filequeue/1.1.2).
+For API docs, refer to the File Queue [JavaDocs](http://javadoc.io/doc/com.stimulussoft/filequeue/1.1.4).
 
 Here's an example snippet of code showing the creation of the queue, submission of an item for processing, and the consumption of that item. 
 
