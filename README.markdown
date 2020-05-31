@@ -20,7 +20,7 @@ The steps for integration are as follows:
     <dependency>
         <groupId>com.stimulussoft</groupId>
         <artifactId>filequeue</artifactId>
-        <version>1.1.5</version>
+        <version>1.1.4</version>
     </dependency>
 
   2. Implement a Jackson serialization POJO by extending FileQueueItem
