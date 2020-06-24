@@ -93,10 +93,17 @@ FileQueueItem PoJo. You can store anything in this object, provided it is compat
 
     }
 
-
-
 Refer to the FileQueueTest in the distribution for working examples.
 
+# Limit Queue Size
+
+The maximum number of queued items can be constrained by specifying maxQueueSize() during queue initialization. Calling method queueItem will block for specified time frame or until a slot becomes available on the queue. If time runs out an exception will be thrown.
+
+  public void queueItem(T fileQueueItem, QueueCallback queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws Exception
+
+# File Caching
+
+If there the need to cache a file to disk or perform resource availability checks prior to items being placed on the queue, implement availableSlot() on the QueueCallback interface. This method is called as soon as a slot becomes available, just before the item is place on the queue. It may be used to cache a file to disk, or perform resource availability pre-checks (e.g. disk space check).
 
 # Credits
 FileQueue is copyright Stimulus Software, implemented by Valentin Popov and Jamie Band.
