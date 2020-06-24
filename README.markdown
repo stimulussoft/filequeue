@@ -99,7 +99,7 @@ Refer to the FileQueueTest in the distribution for working examples.
 
 The maximum number of queued items can be constrained by specifying maxQueueSize() during queue initialization. Calling method queueItem will block for specified time frame or until a slot becomes available on the queue. If time runs out an exception will be thrown.
 
-  public void queueItem(T fileQueueItem, QueueCallback queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws Exception
+    public void queueItem(T fileQueueItem, QueueCallback queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws Exception
 
 # File Caching
 
