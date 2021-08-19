@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  * @author Valentin Popov (Stimulus Software)
  */
 
-class DelayRejectPolicy implements RejectedExecutionHandler {
+public class DelayRejectPolicy implements RejectedExecutionHandler {
     private final long timeOut;
     private final TimeUnit timeUnit;
 

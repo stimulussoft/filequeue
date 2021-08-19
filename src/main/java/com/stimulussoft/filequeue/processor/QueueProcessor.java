@@ -39,23 +39,16 @@ import java.util.concurrent.*;
 
 public class QueueProcessor<T> {
 
+    private ExecutorService executorService;
     private static final Logger logger = LoggerFactory.getLogger(QueueProcessor.class);
-    private static final ThreadPoolExecutor executorService = new ThreadPoolExecutor(
-            Runtime.getRuntime().availableProcessors(),
-            Runtime.getRuntime().availableProcessors() * 8, 60L, TimeUnit.SECONDS,
-            new SynchronousQueue<>(true),
-            ThreadUtil.getFlexibleThreadFactory("filequeue-worker", false),
-            new DelayRejectPolicy());
     private static final ScheduledExecutorService mvstoreCleanUPScheduler = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(),
             ThreadUtil.getFlexibleThreadFactory("mvstore-cleanup", true));
     static {
-        MoreExecutors.addDelayedShutdownHook(executorService, 60L, TimeUnit.SECONDS);
         MoreExecutors.addDelayedShutdownHook(mvstoreCleanUPScheduler, 60L, TimeUnit.SECONDS);
 
     }
 
     public static void destroy() {
-        MoreExecutors.shutdownAndAwaitTermination(executorService, 60L, TimeUnit.SECONDS);
         MoreExecutors.shutdownAndAwaitTermination(mvstoreCleanUPScheduler, 60L, TimeUnit.SECONDS);
     }
 
@@ -93,11 +86,12 @@ public class QueueProcessor<T> {
         private     TimeUnit persistRetryDelayUnit = TimeUnit.SECONDS;
         private     Consumer consumer;
         private     Expiration expiration;
+        private     ExecutorService executorService;
         private     RetryDelayAlgorithm retryDelayAlgorithm =  RetryDelayAlgorithm.FIXED;
 
         public Builder() {}
 
-        public Builder(String queueName, Path queuePath, Class type, Consumer consumer) throws IllegalArgumentException {
+        public Builder(String queueName, Path queuePath, Class type, Consumer consumer, ExecutorService executorService) throws IllegalArgumentException {
             if (queueName == null) throw new IllegalArgumentException("queue name must be specified");
             if (queuePath == null) throw new IllegalArgumentException("queue path must be specified");
             if (type == null) throw new IllegalArgumentException("item type must be specified");
@@ -106,6 +100,7 @@ public class QueueProcessor<T> {
             this.queuePath = queuePath;
             this.type = type;
             this.consumer = consumer;
+            this.executorService = executorService;
         }
         /**
          * Queue path
@@ -196,6 +191,14 @@ public class QueueProcessor<T> {
         public Consumer getConsumer() { return consumer; }
 
         /**
+         * Executor service
+         * @param executorService     executor Service
+         * @return builder
+         */
+        public Builder executorService(ExecutorService executorService) { this.executorService = executorService; return this; }
+        public ExecutorService executorService() { return executorService; }
+
+        /**
          * Set retry delay expiration
          * @param  expiration            retry delay expiration
          * @return builder
@@ -208,8 +211,8 @@ public class QueueProcessor<T> {
         }
     }
 
-    public static Builder builder(String queueName, Path queuePath, Class type, Consumer consumer) throws IllegalArgumentException {
-        return new Builder(queueName, queuePath, type, consumer);
+    public static Builder builder(String queueName, Path queuePath, Class type, Consumer consumer, ExecutorService executor) throws IllegalArgumentException {
+        return new Builder(queueName, queuePath, type, consumer, executor);
     }
 
     public static Builder builder() {
@@ -231,16 +234,16 @@ public class QueueProcessor<T> {
         if (builder.consumer == null) throw new IllegalArgumentException("consumer must be specified");
         objectMapper = createObjectMapper();
         if (!objectMapper.canSerialize(builder.type)) throw new IllegalArgumentException("The given type is not serializable. it cannot be serialized by jackson");
-
-        this.queueName      = builder.queueName;
-        this.queuePath      = builder.queuePath;
-        this.consumer       = builder.consumer;
-        this.expiration     = builder.expiration;
-        this.type           = builder.type;
-        this.maxTries       = builder.maxTries;
-        this.retryDelay     = builder.retryDelay;
-        this.retryDelayUnit = builder.retryDelayUnit;
-        this.maxRetryDelay  = builder.maxRetryDelay;
+        this.queueName       = builder.queueName;
+        this.queuePath       = builder.queuePath;
+        this.consumer        = builder.consumer;
+        this.executorService = builder.executorService;
+        this.expiration      = builder.expiration;
+        this.type            = builder.type;
+        this.maxTries        = builder.maxTries;
+        this.retryDelay      = builder.retryDelay;
+        this.retryDelayUnit  = builder.retryDelayUnit;
+        this.maxRetryDelay   = builder.maxRetryDelay;
         this.retryDelayAlgorithm    = builder.retryDelayAlgorithm;
         mvStoreQueue                = new MVStoreQueue(builder.queuePath, builder.queueName);
         if (builder.persistRetryDelay<=0)

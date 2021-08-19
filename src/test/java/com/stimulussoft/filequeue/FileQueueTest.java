@@ -4,20 +4,19 @@ import com.google.common.collect.Maps;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
 import com.stimulussoft.filequeue.processor.Consumer;
+import com.stimulussoft.filequeue.processor.DelayRejectPolicy;
 import com.stimulussoft.filequeue.processor.Expiration;
+import com.stimulussoft.util.ThreadUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /* File Queue Test
@@ -28,13 +27,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class FileQueueTest {
 
     private static boolean block = true;
-    private static final int ROUNDS = 20000;
+    private static final int ROUNDS = 1000;
     private static final int BLOCKS = 8;
     private static final int RETRIES = 10;
-    private static final int MAXRETRYDELAY = 64;
-    private static final int RETRYDELAY = 60;
+    private static final int MAXRETRYDELAY = 10;
+    private static final int RETRYDELAY = 2;
     private static final int MAXQUEUESIZE = 100;
-    private static final int SMALLQUEUESIZE = 1000;
+    private static final int SMALLQUEUESIZE = 200;
     private static final int PERSISTENT_RETRY_DELAY_MSEC = 100;
     private static final TimeUnit RetryDelayTimeUnit = TimeUnit.MILLISECONDS;
 
@@ -59,6 +58,14 @@ public class FileQueueTest {
     private static Map<String,AtomicInteger> retryTestWithRetriesAndWait = Maps.newConcurrentMap();
     private static AtomicInteger expireTestWithExpiry =  new AtomicInteger(0);
 
+
+    private static final ThreadPoolExecutor executorService = new ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors(),
+            Runtime.getRuntime().availableProcessors() * 8, 60L, TimeUnit.SECONDS,
+            new SynchronousQueue<>(true),
+            ThreadUtil.getFlexibleThreadFactory("filequeue-worker", false),
+            new DelayRejectPolicy());
+
     /* Test Without Retries */
 
     @Test
@@ -67,7 +74,7 @@ public class FileQueueTest {
         Path db = setup("filequeue test without retries", queueName, producedTestWithoutRetries, processedTestWithoutRetries);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestConsumer()).maxQueueSize(MAXQUEUESIZE).persistRetryDelay(1);
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestConsumer(), executorService).maxQueueSize(MAXQUEUESIZE).persistRetryDelay(1);
         queue.startQueue(config);
         Assert.assertEquals(queue.getConfig().getQueueName(), queueName);
         Assert.assertEquals(queue.getConfig().getQueuePath(), db);
@@ -93,7 +100,7 @@ public class FileQueueTest {
         Path db = setup("filequeue test with retries", queueName, producedTestWithRetries, processedTestWithRetries);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestRetryConsumer2()).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestRetryConsumer2(), executorService).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
                                   .retryDelay(RETRYDELAY).retryDelayUnit(RetryDelayTimeUnit).persistRetryDelay(1);
         queue.startQueue(config);
         Assert.assertEquals(queue.getConfig().getMaxTries(), RETRIES);
@@ -125,7 +132,7 @@ public class FileQueueTest {
         Path db = setup("filequeue test with retries and exponential delay", queueName, producedTestWithRetryAndExponentialDelay, processedTestWithRetryAndExponentialDelay);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestRetryConsumer3()).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestRetryConsumer3(), executorService).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
                 .retryDelay(RETRYDELAY).retryDelayUnit(RetryDelayTimeUnit)
                 .retryDelayAlgorithm(FileQueue.RetryDelayAlgorithm.EXPONENTIAL).retryDelay(RETRYDELAY).maxRetryDelay(MAXRETRYDELAY);
         queue.startQueue(config);
@@ -149,7 +156,7 @@ public class FileQueueTest {
         Path db = setup("filequeue test with expiry", queueName, producedTestWithExpiry, processedTestWithExpiry);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestExpireConsumer()).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestExpireConsumer(), executorService).maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
                 .retryDelay(RETRYDELAY).retryDelayUnit(RetryDelayTimeUnit).expiration(new TestExpiration())
                 .retryDelayAlgorithm(FileQueue.RetryDelayAlgorithm.EXPONENTIAL).retryDelay(RETRYDELAY)
                 .maxRetryDelay(MAXRETRYDELAY);
@@ -174,7 +181,7 @@ public class FileQueueTest {
         Path db = setup("filequeue test with retries and block", queueName, producedTestWithRetriesAndWait, processedTestWithRetriesAndWait);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestExpireConsumer2()).maxQueueSize(SMALLQUEUESIZE)
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestExpireConsumer2(), executorService).maxQueueSize(SMALLQUEUESIZE)
                 .retryDelay(RETRYDELAY).retryDelayUnit(RetryDelayTimeUnit).expiration(new TestExpiration2())
                  .maxRetryDelay(MAXRETRYDELAY).persistRetryDelay(PERSISTENT_RETRY_DELAY_MSEC)
                 .persistRetryDelayUnit(TimeUnit.MILLISECONDS);
@@ -216,7 +223,7 @@ public class FileQueueTest {
         Path db = setup("filequeue test with persist", queueName, producedTestPersist, processedTestPersist);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestShutdownConsumer()).maxQueueSize(MAXQUEUESIZE)
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestShutdownConsumer(), executorService).maxQueueSize(MAXQUEUESIZE)
                 .retryDelay(RETRYDELAY).retryDelayUnit(RetryDelayTimeUnit).expiration(new TestExpiration2())
                 .maxRetryDelay(MAXRETRYDELAY).persistRetryDelay(PERSISTENT_RETRY_DELAY_MSEC)
                 .persistRetryDelayUnit(TimeUnit.MILLISECONDS);
@@ -245,7 +252,7 @@ public class FileQueueTest {
         Path db = setup("filequeue test with blockage", queueName, producedTestWithRetries, processedTestWithRetries);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestBlockConsumer()).maxQueueSize(MAXQUEUESIZE);
+        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestBlockConsumer(), executorService).maxQueueSize(MAXQUEUESIZE);
         queue.startQueue(config);
         producedTestWithBlockage.set(0);
         processedTestWithBlockage.set(0);

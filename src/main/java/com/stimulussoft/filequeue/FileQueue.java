@@ -20,6 +20,7 @@ import com.stimulussoft.filequeue.processor.QueueProcessor;
 import com.stimulussoft.util.AdjustableSemaphore;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -163,10 +164,11 @@ public final class FileQueue<T> {
          * @param queuePath writeable path where the queue database will be stored
          * @param type type of queue item
          * @param consumer callback to process items in the queue
+         * @param executorService thread pool to process items
          */
 
-        public Config(String queueName, Path queuePath, Class type, Consumer consumer) {
-            builder = builder.type(type).queueName(queueName).queuePath(queuePath);
+        public Config(String queueName, Path queuePath, Class type, Consumer consumer, ExecutorService executorService) {
+            builder = builder.type(type).queueName(queueName).queuePath(queuePath).executorService(executorService);
             this.consumer = consumer;
         }
 
@@ -296,8 +298,8 @@ public final class FileQueue<T> {
      *  @return config configuration
      */
 
-    public static  Config config(String queueName, Path queuePath, Class type, Consumer consumer) {
-        return new Config<FileQueueItem>(queueName, queuePath, type, consumer);
+    public static  Config config(String queueName, Path queuePath, Class type, Consumer consumer, ExecutorService executorService) {
+        return new Config<FileQueueItem>(queueName, queuePath, type, consumer, executorService);
     }
 
     /**
