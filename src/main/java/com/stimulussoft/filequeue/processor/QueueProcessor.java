@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
@@ -56,7 +57,7 @@ public class QueueProcessor<T> {
 
     private final ObjectMapper objectMapper;
     private final MVStoreQueue mvStoreQueue;
-    private final Class<T> type;
+    private final Type type;
     private final Consumer<T> consumer;
     private final Expiration<T> expiration;
     private final Phaser restorePolled = new Phaser();
@@ -77,7 +78,7 @@ public class QueueProcessor<T> {
 
         private     Path queuePath;
         private     String queueName;
-        private     Class type;
+        private     Type type;
         private     int maxTries                = 0;
         private     int retryDelay              = 1;
         private     int persistRetryDelay            = 0;
@@ -88,6 +89,7 @@ public class QueueProcessor<T> {
         private     Expiration expiration;
         private     ExecutorService executorService;
         private     RetryDelayAlgorithm retryDelayAlgorithm =  RetryDelayAlgorithm.FIXED;
+        private     ObjectMapper objectMapper = null;
 
         public Builder() {}
 
@@ -122,8 +124,8 @@ public class QueueProcessor<T> {
          * @param type                   filequeueitem type
          * @return builder
          */
-        public Builder type(Class type) { this.type = type; return this; }
-        public Class getType() { return type; }
+        public Builder type(Type type) { this.type = type; return this; }
+        public Type getType() { return type; }
 
         /**
          * Maximum number of tries. Set to zero for infinite.
@@ -206,6 +208,8 @@ public class QueueProcessor<T> {
         public Builder expiration(Expiration expiration) { this.expiration = expiration; return this; }
         public Expiration getExpiration() { return expiration; }
 
+        public Builder objectMapper(ObjectMapper objectMapper){this.objectMapper = objectMapper;return this;}
+
         public QueueProcessor build() throws IOException, IllegalStateException, IllegalArgumentException {
             return new QueueProcessor(this);
         }
@@ -233,7 +237,7 @@ public class QueueProcessor<T> {
         if (builder.type == null) throw new IllegalArgumentException("item type must be specified");
         if (builder.consumer == null) throw new IllegalArgumentException("consumer must be specified");
         objectMapper = createObjectMapper();
-        if (!objectMapper.canSerialize(builder.type)) throw new IllegalArgumentException("The given type is not serializable. it cannot be serialized by jackson");
+        if (!objectMapper.canSerialize(objectMapper.constructType(builder.type).getClass())) throw new IllegalArgumentException("The given type is not serializable. it cannot be serialized by jackson");
         this.queueName       = builder.queueName;
         this.queuePath       = builder.queuePath;
         this.consumer        = builder.consumer;
@@ -349,7 +353,7 @@ public class QueueProcessor<T> {
     private T deserialize(final byte[] data) {
         if (data == null) return null;
         try {
-            return objectMapper.readValue(data, type);
+            return objectMapper.readValue(data, objectMapper.constructType(type));
         } catch (IOException e) {
             logger.error("failed deserialize object {" + Arrays.toString(data) + "}", e);
             return null;
@@ -492,7 +496,7 @@ public class QueueProcessor<T> {
      * Get queue item type
      * @return type
      */
-    public Class getType() { return type; }
+    public Type getType() { return type; }
     /**
      * Maximum number of tries. Set to zero for infinite.
      * @return maximum number of retries

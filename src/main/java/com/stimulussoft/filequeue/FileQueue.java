@@ -19,6 +19,7 @@ import com.stimulussoft.filequeue.processor.Expiration;
 import com.stimulussoft.filequeue.processor.QueueProcessor;
 import com.stimulussoft.util.AdjustableSemaphore;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -113,9 +114,13 @@ public final class FileQueue<T> {
     // this class is neeeded to release permit after processing an item
 
     private final Consumer<T> fileQueueConsumer = item -> {
-        Consumer.Result result = config.getConsumer().consume(item);
-        if (result != Consumer.Result.FAIL_REQUEUE)
-            permits.release();
+        Consumer.Result result = Consumer.Result.FAIL_NOQUEUE;
+        try {
+            result = config.getConsumer().consume(item);
+        } finally {
+            if (result != Consumer.Result.FAIL_REQUEUE)
+                permits.release();
+        }
         return result;
     };
 
@@ -195,12 +200,12 @@ public final class FileQueue<T> {
          * @param type                   filequeueitem type
          * @return config configuration
          */
-        public Config type(Class type) throws IllegalArgumentException {
-            if (type == FileQueueItem.class || !FileQueueItem.class.isAssignableFrom(type))
+        public Config type(Type type) throws IllegalArgumentException {
+            if (type == FileQueueItem.class || !FileQueueItem.class.isAssignableFrom(type.getClass()))
                 throw new IllegalArgumentException("type must be a subclass of filequeueitem");
             builder = builder.type(type); return this;
         }
-        public Class getType() { return builder.getType(); }
+        public Type getType() { return builder.getType(); }
 
         /**
          * Maximum number of tries. Set to zero for infinite.
@@ -320,10 +325,7 @@ public final class FileQueue<T> {
         try {
             queueCallback.availableSlot(fileQueueItem);
             _queueItem(fileQueueItem);
-        } catch (InterruptedException ie) {
-            permits.release();
-            throw ie;
-        } catch (Exception io) {
+        } catch (Throwable io) {
             permits.release();
             throw io;
         }
@@ -343,7 +345,7 @@ public final class FileQueue<T> {
         acquirePermit(acquireWait, acquireWaitUnit);
         try {
             queueItem(fileQueueItem);
-        } catch (Exception io) {
+        } catch (Throwable io) {
             permits.release();
             throw io;
         }

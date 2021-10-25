@@ -1,6 +1,6 @@
 # Introduction
 
-The File Queue project offers a light weight, high performance, simple, reliable and persistent queue for Java applications. All producers and consumers run within a single Java runtime.
+The File Queue project offers a light weight, performant, simple, reliable and persistent queue for Java applications. All producers and consumers run within a single Java runtime.
 To provide persistence, File Queue leverages the [MVStore](http://www.h2database.com/html/mvstore.html) database engine from H2. Queue items are regular Java POJOs, serialized into Json using [jackson](http://jackson.codehaus.org/).
 
 To attain higher levels of performance, File Queue will transfer queued items directly to consumers without hitting the database provided there are consumers available. If all consumers are busy, file queue will automatically persist queued items to the database.
@@ -20,17 +20,17 @@ The steps for integration are as follows:
     <dependency>
         <groupId>com.stimulussoft</groupId>
         <artifactId>filequeue</artifactId>
-        <version>1.1.3</version>
-        <scope>test</scope>
+        <version>1.1.4</version>
     </dependency>
 
-  2. Extend Consumer<FileQueueItem> and implement consume(FileQueueItem) to perform actual processing work.
-  3. Create a new FileQueue object
-  4. Call config() to construct an appropriate configuration
+  2. Implement a Jackson serialization POJO by extending FileQueueItem
+  3. Implement consume(FileQueueItem) on Consumer interface to process items
+  3. Instantiate a FileQueue object and call config() to configure
   5. Call startQueue() to start the queue
   6. Call stopQueue() to stop the queue processing
+  7. Call FileQueue.destroy() to shutdown all static threads (optional)
 
-For API docs, refer to the File Queue [JavaDocs](http://javadoc.io/doc/com.stimulussoft/filequeue/1.1.2).
+For API docs, refer to the File Queue [JavaDocs](http://javadoc.io/doc/com.stimulussoft/filequeue/1.1.4).
 
 Here's an example snippet of code showing the creation of the queue, submission of an item for processing, and the consumption of that item. 
 
@@ -93,10 +93,17 @@ FileQueueItem PoJo. You can store anything in this object, provided it is compat
 
     }
 
-
-
 Refer to the FileQueueTest in the distribution for working examples.
 
+# Limit Queue Size
+
+The maximum number of queued items can be constrained by specifying maxQueueSize() during queue initialization. Calling method queueItem will block for specified time frame or until a slot becomes available on the queue. If time runs out an exception will be thrown.
+
+    public void queueItem(T fileQueueItem, QueueCallback queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws Exception
+
+# File Caching
+
+If there the need to cache a file to disk or perform resource availability checks prior to items being placed on the queue, implement availableSlot() on the QueueCallback interface. This method is called as soon as a slot becomes available, just before the item is place on the queue. It may be used to cache a file to disk, or perform resource availability pre-checks (e.g. disk space check).
 
 # Credits
 FileQueue is copyright Stimulus Software, implemented by Valentin Popov and Jamie Band.
