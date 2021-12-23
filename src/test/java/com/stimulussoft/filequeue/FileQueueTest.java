@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class FileQueueTest {
 
     private static boolean block = true;
-    private static final int ROUNDS = 1000;
+    private static final int ROUNDS = 100;
     private static final int BLOCKS = 8;
     private static final int RETRIES = 10;
     private static final int MAXRETRYDELAY = 10;
@@ -74,7 +74,7 @@ public class FileQueueTest {
         Path db = setup("filequeue test without retries", queueName, producedTestWithoutRetries, processedTestWithoutRetries);
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
         FileQueue queue = FileQueue.fileQueue();
-        FileQueue.Config config = FileQueue.config(queueName,db,TestFileQueueItem.class,new TestConsumer(), executorService).maxQueueSize(MAXQUEUESIZE).persistRetryDelay(1);
+        FileQueue.Config config = (FileQueue.Config)FileQueue.config(queueName,db,TestFileQueueItem.class,new TestConsumer(), executorService).maxQueueSize(MAXQUEUESIZE).persistRetryDelay(1);
         queue.startQueue(config);
         Assert.assertEquals(queue.getConfig().getQueueName(), queueName);
         Assert.assertEquals(queue.getConfig().getQueuePath(), db);
@@ -115,7 +115,7 @@ public class FileQueueTest {
             final int no = i;
             executor.execute(() -> {
                 try { producedTestWithRetries.incrementAndGet();
-                queue.queueItem(new TestFileQueueItem(no)); } catch (Exception e) { throw new RuntimeException(e.getMessage()); }
+                queue.queueItem(new TestFileQueueItem(no), 1, TimeUnit.HOURS); } catch (Exception e) { throw new RuntimeException(e.getMessage()); }
             });
         }
         executor.shutdown();;

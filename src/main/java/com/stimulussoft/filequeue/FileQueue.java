@@ -76,10 +76,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class FileQueue<T> {
 
-    public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL}
+    public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL }
     private ShutdownHook shutdownHook;
     private final AtomicBoolean isStarted = new AtomicBoolean();
-    private final AdjustableSemaphore permits = new AdjustableSemaphore();
     private QueueProcessor<T> transferQueue;
     private Config config;
 
@@ -102,9 +101,6 @@ public final class FileQueue<T> {
         if (isStarted.get()) throw new IllegalStateException("already started");
         this.config = config;
         transferQueue = config.builder.consumer(fileQueueConsumer).build();
-        permits.setMaxPermits(config.maxQueueSize);
-        for (int i = 0; i < transferQueue.size(); i++)
-            if (!permits.tryAcquire()) break;
         shutdownHook = new ShutdownHook();
         Runtime.getRuntime().removeShutdownHook(shutdownHook);
         Runtime.getRuntime().addShutdownHook(shutdownHook);
@@ -115,12 +111,7 @@ public final class FileQueue<T> {
 
     private final Consumer<T> fileQueueConsumer = item -> {
         Consumer.Result result = Consumer.Result.FAIL_NOQUEUE;
-        try {
-            result = config.getConsumer().consume(item);
-        } finally {
-            if (result != Consumer.Result.FAIL_REQUEUE)
-                permits.release();
-        }
+        result = config.getConsumer().consume(item);
         return result;
     };
 
@@ -144,7 +135,6 @@ public final class FileQueue<T> {
             try {
                 transferQueue.close();
             } finally {
-                permits.release(permits.drainPermits());
                 Runtime.getRuntime().removeShutdownHook(shutdownHook);
             }
         }
@@ -158,7 +148,6 @@ public final class FileQueue<T> {
 
     public static class Config<T> {
 
-        private int maxQueueSize = Integer.MAX_VALUE;
         private Consumer consumer;
 
         private QueueProcessor.Builder builder = QueueProcessor.builder();
@@ -281,7 +270,7 @@ public final class FileQueue<T> {
          * @param  expiration            retry delay expiration
          * @return config configuration
          */
-        public  Config expiration(Expiration<T> expiration) {builder = builder.expiration(expiration); return this; }
+        public  Config expiration(Expiration<T> expiration) { builder = builder.expiration(expiration); return this; }
         public Expiration getExpiration() { return builder.getExpiration(); }
 
         /**
@@ -289,8 +278,8 @@ public final class FileQueue<T> {
          * @param  maxQueueSize            maximum size of queue
          * @return config configuration
          */
-        public  Config maxQueueSize(int maxQueueSize) { this.maxQueueSize = maxQueueSize; return this; }
-        public int getMaxQueueSize() { return maxQueueSize; }
+        public  Config maxQueueSize(int maxQueueSize) { builder = builder.maxQueueSize(maxQueueSize); return this; }
+        public int getMaxQueueSize() { return builder.getMaxQueueSize(); }
 
     }
 
@@ -321,13 +310,20 @@ public final class FileQueue<T> {
 
     @VisibleForTesting
     public void queueItem(final T fileQueueItem, QueueCallback queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
-        acquirePermit(acquireWait, acquireWaitUnit);
+        if (fileQueueItem == null)
+            throw new IllegalArgumentException("filequeue item cannot be null");
+
+        if (!isStarted.get())
+            throw new IllegalStateException("queue not started");
+
         try {
             queueCallback.availableSlot(fileQueueItem);
-            _queueItem(fileQueueItem);
-        } catch (Throwable io) {
-            permits.release();
-            throw io;
+            transferQueue.submit(fileQueueItem, acquireWait, acquireWaitUnit);
+            // mvstore throws a null ptr exception when out of disk space
+        } catch (NullPointerException npe) {
+            throw new IOException("not enough disk space");
+        } catch (Exception e) {
+            throw new IOException(e);
         }
     }
 
@@ -341,15 +337,23 @@ public final class FileQueue<T> {
      * @throws InterruptedException queuing was interrupted due to shutdown
      */
 
-        public void queueItem(final T fileQueueItem, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException, IllegalArgumentException {
-        acquirePermit(acquireWait, acquireWaitUnit);
-        try {
-            queueItem(fileQueueItem);
-        } catch (Throwable io) {
-            permits.release();
-            throw io;
-        }
+     public void queueItem(final T fileQueueItem, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
+         if (fileQueueItem == null)
+             throw new IllegalArgumentException("filequeue item cannot be null");
+
+         if (!isStarted.get())
+             throw new IllegalStateException("queue not started");
+
+         try {
+             transferQueue.submit(fileQueueItem, acquireWait, acquireWaitUnit);
+             // mvstore throws a null ptr exception when out of disk space
+         } catch (NullPointerException npe) {
+             throw new IOException("not enough disk space");
+         } catch (Exception e) {
+             throw new IOException(e);
+         }
     }
+
     /**
      * Queue item for delivery (no blocking)
      *
@@ -358,26 +362,13 @@ public final class FileQueue<T> {
      * @throws IOException if the item could not be serialized
      */
 
-    public void queueItem(final T fileQueueItem) throws IOException, IllegalArgumentException, IllegalStateException {
-        _queueItem(fileQueueItem);
-    }
-
-    /**
-     * Private function for queue item for delivery (no blocking)
-     *
-     * @param fileQueueItem item for queuing
-     * @throws IllegalArgumentException if the wrong arguments were supplied
-     * @throws IOException if the item could not be serialized
-     */
-
-    private void _queueItem(final T fileQueueItem) throws IOException, IllegalArgumentException, IllegalStateException {
-
+    public void queueItem(final T fileQueueItem) throws Exception {
         if (fileQueueItem == null)
             throw new IllegalArgumentException("filequeue item cannot be null");
 
         if (!isStarted.get())
             throw new IllegalStateException("queue not started");
-        
+
         try {
             transferQueue.submit(fileQueueItem);
             // mvstore throws a null ptr exception when out of disk space
@@ -387,6 +378,8 @@ public final class FileQueue<T> {
             throw new IOException(e);
         }
     }
+
+
 
     /**
      * Return filequeue size
@@ -405,27 +398,14 @@ public final class FileQueue<T> {
      * @param queueSize size of queue
      */
 
-    public void setMaxQueueSize(int queueSize) {
+    public void setMaxQueueSize(int queueSize) throws InterruptedException {
         if (config != null)
             config = config.maxQueueSize(queueSize);
-        permits.setMaxPermits(queueSize);
+        if (transferQueue != null)
+            transferQueue.setMaxQueueSize(queueSize);
     }
 
 
-    /**
-     * Private function to acquire an open slot in the queue for processing.
-     *
-     * @param acquireWait     time to wait for acquisition of free slot
-     * @param acquireWaitUnit time unit for acquireWait
-     * @throws InterruptedException thrown if waiting was interrupted due to shutdown
-     * @throws IOException thrown if could not acquire a free slot
-     */
-    private void acquirePermit(int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
-        if (!isStarted.get())
-            throw new IllegalStateException("queue not started");
-            if (!permits.tryAcquire(acquireWait, acquireWaitUnit))
-                throw new IOException("filequeue " + transferQueue.getQueuePath() + " is full. {maxQueueSize='" + config.maxQueueSize + "'}");
-     }
 
     /**
      * Return no items in filequeue
@@ -464,6 +444,10 @@ public final class FileQueue<T> {
     public static FileQueue<FileQueueItem> fileQueue() { return new FileQueue<>(); }
 
 
-    protected int availablePermits() { return permits.availablePermits(); }
-        }
+    protected int availablePermits() {
+        if (!isStarted.get()) throw new IllegalStateException("queue not started");
+        return transferQueue.availablePermits();
+    }
+
+ }
 

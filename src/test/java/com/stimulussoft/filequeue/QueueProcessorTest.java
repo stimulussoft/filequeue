@@ -44,7 +44,7 @@ public class QueueProcessorTest {
     static AtomicInteger produced = new AtomicInteger(0);
 
     @Test
-    public void oneQueue() throws IOException {
+    public void oneQueue() throws IOException, InterruptedException  {
 
         Path dir = Files.createTempDirectory("filequeue");
 
@@ -68,6 +68,8 @@ public class QueueProcessorTest {
                         phaser.register();
                         testQueue.submit(i1);
                         produced.incrementAndGet();
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }

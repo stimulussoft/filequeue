@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.stimulussoft.filequeue.FileQueueItem;
 import com.stimulussoft.filequeue.store.MVStoreQueue;
+import com.stimulussoft.util.AdjustableSemaphore;
 import com.stimulussoft.util.ThreadUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +65,8 @@ public class QueueProcessor<T> {
     private Optional<ScheduledFuture<?>> cleanupTaskScheduler;
     private volatile boolean doRun = true;
     private final int maxTries;
+
+    private int maxQueueSize;
     private final int retryDelay;
     private final int persistRetryDelay;
     private final int maxRetryDelay;
@@ -72,24 +75,26 @@ public class QueueProcessor<T> {
     private final TimeUnit retryDelayUnit;
     private final TimeUnit persistRetryDelayUnit;
     private final RetryDelayAlgorithm retryDelayAlgorithm;
+    private final AdjustableSemaphore permits = new AdjustableSemaphore();
 
 
     public static class Builder {
 
-        private     Path queuePath;
-        private     String queueName;
-        private     Type type;
-        private     int maxTries                = 0;
-        private     int retryDelay              = 1;
-        private     int persistRetryDelay            = 0;
-        private     int maxRetryDelay           = 1;
-        private     TimeUnit retryDelayUnit = TimeUnit.SECONDS;
-        private     TimeUnit persistRetryDelayUnit = TimeUnit.SECONDS;
-        private     Consumer consumer;
-        private     Expiration expiration;
-        private     ExecutorService executorService;
-        private     RetryDelayAlgorithm retryDelayAlgorithm =  RetryDelayAlgorithm.FIXED;
-        private     ObjectMapper objectMapper = null;
+        protected   Path queuePath;
+        protected     String queueName;
+        protected     Type type;
+        protected     int maxTries                = 0;
+        protected     int retryDelay              = 1;
+        protected     int persistRetryDelay            = 0;
+        protected     int maxRetryDelay           = 1;
+        protected     TimeUnit retryDelayUnit = TimeUnit.SECONDS;
+        protected     TimeUnit persistRetryDelayUnit = TimeUnit.SECONDS;
+        protected     Consumer consumer;
+        protected     Expiration expiration;
+        protected     ExecutorService executorService;
+        protected     RetryDelayAlgorithm retryDelayAlgorithm =  RetryDelayAlgorithm.FIXED;
+        protected     ObjectMapper objectMapper = null;
+        protected int maxQueueSize = Integer.MAX_VALUE;
 
         public Builder() {}
 
@@ -126,6 +131,14 @@ public class QueueProcessor<T> {
          */
         public Builder type(Type type) { this.type = type; return this; }
         public Type getType() { return type; }
+
+        /**
+         * Maximum size of the queue before blocking
+         * @param maxQueueSize maximum queue size
+         * @return builder
+         */
+        public Builder maxQueueSize(int maxQueueSize) { this.maxQueueSize = maxQueueSize; return this; }
+        public int getMaxQueueSize() { return maxQueueSize; }
 
         /**
          * Maximum number of tries. Set to zero for infinite.
@@ -210,7 +223,7 @@ public class QueueProcessor<T> {
 
         public Builder objectMapper(ObjectMapper objectMapper){this.objectMapper = objectMapper;return this;}
 
-        public QueueProcessor build() throws IOException, IllegalStateException, IllegalArgumentException {
+        public QueueProcessor build() throws IOException, IllegalStateException, IllegalArgumentException, InterruptedException {
             return new QueueProcessor(this);
         }
     }
@@ -231,7 +244,7 @@ public class QueueProcessor<T> {
      * @throws IOException              if the item could not be serialized
      */
 
-    QueueProcessor(Builder builder) throws IOException, IllegalStateException, IllegalArgumentException {
+    QueueProcessor(Builder builder) throws IOException, IllegalStateException, IllegalArgumentException, InterruptedException {
         if (builder.queueName == null) throw new IllegalArgumentException("queue name must be specified");
         if (builder.queuePath == null) throw new IllegalArgumentException("queue path must be specified");
         if (builder.type == null) throw new IllegalArgumentException("item type must be specified");
@@ -248,6 +261,7 @@ public class QueueProcessor<T> {
         this.retryDelay      = builder.retryDelay;
         this.retryDelayUnit  = builder.retryDelayUnit;
         this.maxRetryDelay   = builder.maxRetryDelay;
+        this.maxQueueSize    = builder.maxQueueSize;
         this.retryDelayAlgorithm    = builder.retryDelayAlgorithm;
         mvStoreQueue                = new MVStoreQueue(builder.queuePath, builder.queueName);
         if (builder.persistRetryDelay<=0)
@@ -256,6 +270,7 @@ public class QueueProcessor<T> {
             this.persistRetryDelay  = builder.persistRetryDelay;
         this.persistRetryDelayUnit  = builder.persistRetryDelayUnit;
         cleanupTaskScheduler = Optional.of(mvstoreCleanUPScheduler.scheduleWithFixedDelay(new MVStoreCleaner(this), 0, persistRetryDelay, persistRetryDelayUnit));
+        setMaxQueueSize(builder.maxQueueSize);
     }
 
     /**
@@ -279,6 +294,28 @@ public class QueueProcessor<T> {
         mvStoreQueue.reopen();
     }
 
+
+    public int availablePermits() { return permits.availablePermits(); }
+
+    /**
+     * Submit item for instant processing with embedded pool. If item can't be processed instant
+     * it will be queued on filesystem and processed after.
+     *
+     * @param item queue item
+     * @param acquireWait block for x msec
+     * @param acquireWaitUnit wait block for time unit
+     * @throws IllegalStateException if the queue is not running
+     * @throws IOException           if the item could not be serialized
+     */
+
+    public void submit(final T item, int acquireWait, TimeUnit acquireWaitUnit) throws IllegalStateException, IOException, InterruptedException {
+        if (!doRun)
+            throw new IllegalStateException("file queue {" + getQueueBaseDir() + "} is not running");
+        if (!permits.tryAcquire(1, acquireWait, acquireWaitUnit))
+            throw new IOException("filequeue " + queuePath + " is full. {maxQueueSize='" + maxQueueSize + "'}");
+        _submit(item);
+    }
+
     /**
      * Submit item for instant processing with embedded pool. If item can't be processed instant
      * it will be queued on filesystem and processed after.
@@ -288,14 +325,25 @@ public class QueueProcessor<T> {
      * @throws IOException           if the item could not be serialized
      */
 
-    public void submit(final T item) throws IllegalStateException, IOException {
+    public void submit(final T item) throws IllegalStateException, IOException, InterruptedException {
         if (!doRun)
             throw new IllegalStateException("file queue {" + getQueueBaseDir() + "} is not running");
+        permits.acquire(1);
+        _submit(item);
+    }
+
+
+    private void _submit(final T item) throws IllegalStateException, IOException {
         try {
             restorePolled.register();
             executorService.execute(new ProcessItem<>(consumer, expiration, item, this));
         } catch (RejectedExecutionException | CancellationException cancel) {
-            mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
+            try {
+                mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
+            } catch (IOException io) {
+                permits.release();
+                throw io;
+            }
         } finally {
             restorePolled.arriveAndDeregister();
         }
@@ -307,6 +355,14 @@ public class QueueProcessor<T> {
         restorePolled.register();
         restorePolled.arriveAndAwaitAdvance();
         mvStoreQueue.close();
+        permits.release(permits.drainPermits());
+    }
+
+    public void setMaxQueueSize(int maxQueueSize) throws InterruptedException {
+        this.maxQueueSize = maxQueueSize;
+        permits.release(permits.drainPermits());
+        permits.setMaxPermits(this.maxQueueSize);
+        permits.acquire((int)mvStoreQueue.size() > this.maxQueueSize ? this.maxQueueSize : (int)mvStoreQueue.size());
     }
 
     public long size() {
@@ -375,14 +431,16 @@ public class QueueProcessor<T> {
             this.queueProcessor = queueProcessor;
         }
 
-        private void pushBackIfNeeded() {
+        private boolean pushBack() {
             if (isPushBack()) {
                 try {
                     mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
+                    return true;
                 } catch (Exception e1) {
                     logger.error("failed to process item {" + item.toString() + "}", e1);
                 }
             }
+            return false;
         }
 
         private void flagPush() { pushback = true; }
@@ -400,7 +458,8 @@ public class QueueProcessor<T> {
             } catch (Exception e) {
                 logger.error("failed to process item {" + item.toString() + "}", e);
             } finally {
-                pushBackIfNeeded();
+                if (!pushBack())
+                    permits.release();
             }
         }
 
@@ -446,7 +505,7 @@ public class QueueProcessor<T> {
                             if (item == null) continue;
                             if (isNeedRetry(item)) {
                                 if (isTimeToRetry(item))
-                                    queueProcessor.submit(item);
+                                    queueProcessor._submit(item);
                                 else {
                                     mvStoreQueue.push(toDeserialize);
                                     if (pushBack == null)
