@@ -349,6 +349,7 @@ public class QueueProcessor<T> {
         }
     }
 
+
     public void close() {
         doRun = false;
         cleanupTaskScheduler.ifPresent(cleanupTask -> cleanupTask.cancel(true));
@@ -455,7 +456,7 @@ public class QueueProcessor<T> {
             } catch (InterruptedException e) {
                 flagPush();
                 Thread.currentThread().interrupt();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 logger.error("failed to process item {" + item.toString() + "}", e);
             } finally {
                 if (!pushBack())
