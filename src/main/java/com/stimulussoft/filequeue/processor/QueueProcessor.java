@@ -340,9 +340,9 @@ public class QueueProcessor<T> {
         } catch (RejectedExecutionException | CancellationException cancel) {
             try {
                 mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
-            } catch (IOException io) {
+            } catch (Throwable t) {
                 permits.release();
-                throw io;
+                throw t;
             }
         } finally {
             restorePolled.arriveAndDeregister();
@@ -437,7 +437,7 @@ public class QueueProcessor<T> {
                 try {
                     mvStoreQueue.push(objectMapper.writeValueAsBytes(item));
                     return true;
-                } catch (Exception e1) {
+                } catch (Throwable e1) {
                     logger.error("failed to process item {" + item.toString() + "}", e1);
                 }
             }
