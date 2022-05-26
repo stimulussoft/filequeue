@@ -323,7 +323,7 @@ public final class FileQueue<T> {
         } catch (NullPointerException npe) {
             throw new IOException("not enough disk space");
         } catch (Exception e) {
-            throw new IOException(e);
+            throw e;
         }
     }
 
@@ -350,7 +350,7 @@ public final class FileQueue<T> {
          } catch (NullPointerException npe) {
              throw new IOException("not enough disk space");
          } catch (Exception e) {
-             throw new IOException(e);
+             throw e;
          }
     }
 
@@ -375,7 +375,7 @@ public final class FileQueue<T> {
         } catch (NullPointerException npe) {
             throw new IOException("not enough disk space");
         } catch (Exception e) {
-            throw new IOException(e);
+            throw e;
         }
     }
 
