@@ -17,7 +17,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.stimulussoft.filequeue.processor.Consumer;
 import com.stimulussoft.filequeue.processor.Expiration;
 import com.stimulussoft.filequeue.processor.QueueProcessor;
-import com.stimulussoft.util.AdjustableSemaphore;
+import com.stimulussoft.filequeue.processor.QueueProcessorBuilder;
+
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Path;
@@ -150,7 +151,7 @@ public final class FileQueue<T> {
 
         private Consumer consumer;
 
-        private QueueProcessor.Builder builder = QueueProcessor.builder();
+        private QueueProcessorBuilder builder = QueueProcessorBuilder.builder();
 
         /**
          * Rather use FileQueue.config(..) to build a new queue configuration.
