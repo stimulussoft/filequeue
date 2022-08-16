@@ -45,6 +45,7 @@ public class QueueProcessor<T> {
     private static final Logger logger = LoggerFactory.getLogger(QueueProcessor.class);
     private static final ScheduledExecutorService mvstoreCleanUPScheduler = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(),
             ThreadUtil.getFlexibleThreadFactory("mvstore-cleanup", true));
+
     static {
         MoreExecutors.addDelayedShutdownHook(mvstoreCleanUPScheduler, 60L, TimeUnit.SECONDS);
 
@@ -54,7 +55,7 @@ public class QueueProcessor<T> {
         MoreExecutors.shutdownAndAwaitTermination(mvstoreCleanUPScheduler, 60L, TimeUnit.SECONDS);
     }
 
-    public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL}
+    public enum RetryDelayAlgorithm {FIXED, EXPONENTIAL}
 
     private final ObjectMapper objectMapper;
     private final MVStoreQueue mvStoreQueue;
@@ -80,23 +81,24 @@ public class QueueProcessor<T> {
 
     public static class Builder {
 
-        protected   Path queuePath;
-        protected     String queueName;
-        protected     Type type;
-        protected     int maxTries                = 0;
-        protected     int retryDelay              = 1;
-        protected     int persistRetryDelay            = 0;
-        protected     int maxRetryDelay           = 1;
-        protected     TimeUnit retryDelayUnit = TimeUnit.SECONDS;
-        protected     TimeUnit persistRetryDelayUnit = TimeUnit.SECONDS;
-        protected     Consumer consumer;
-        protected     Expiration expiration;
-        protected     ExecutorService executorService;
-        protected     RetryDelayAlgorithm retryDelayAlgorithm =  RetryDelayAlgorithm.FIXED;
-        protected     ObjectMapper objectMapper = null;
+        protected Path queuePath;
+        protected String queueName;
+        protected Type type;
+        protected int maxTries = 0;
+        protected int retryDelay = 1;
+        protected int persistRetryDelay = 0;
+        protected int maxRetryDelay = 1;
+        protected TimeUnit retryDelayUnit = TimeUnit.SECONDS;
+        protected TimeUnit persistRetryDelayUnit = TimeUnit.SECONDS;
+        protected Consumer consumer;
+        protected Expiration expiration;
+        protected ExecutorService executorService;
+        protected RetryDelayAlgorithm retryDelayAlgorithm = RetryDelayAlgorithm.FIXED;
+        protected ObjectMapper objectMapper = null;
         protected int maxQueueSize = Integer.MAX_VALUE;
 
-        public Builder() {}
+        public Builder() {
+        }
 
         public Builder(String queueName, Path queuePath, Class type, Consumer consumer, ExecutorService executorService) throws IllegalArgumentException {
             if (queueName == null) throw new IllegalArgumentException("queue name must be specified");
@@ -109,119 +111,222 @@ public class QueueProcessor<T> {
             this.consumer = consumer;
             this.executorService = executorService;
         }
+
         /**
          * Queue path
-         * @param queuePath              path to queue database
+         *
+         * @param queuePath path to queue database
          * @return builder
          */
-        public Builder queuePath(Path queuePath) { this.queuePath = queuePath; return this; }
-        public Path getQueuePath() { return queuePath; }
+        public Builder queuePath(Path queuePath) {
+            this.queuePath = queuePath;
+            return this;
+        }
+
+        public Path getQueuePath() {
+            return queuePath;
+        }
+
         /**
          * Queue name
-         * @param queueName              friendly name for the queue
+         *
+         * @param queueName friendly name for the queue
          * @return builder
          */
-        public Builder queueName(String queueName) { this.queueName = queueName; return this; }
-        public String getQueueName() { return queueName; }
+        public Builder queueName(String queueName) {
+            this.queueName = queueName;
+            return this;
+        }
+
+        public String getQueueName() {
+            return queueName;
+        }
 
         /**
          * Type of queue item
-         * @param type                   filequeueitem type
+         *
+         * @param type filequeueitem type
          * @return builder
          */
-        public Builder type(Type type) { this.type = type; return this; }
-        public Type getType() { return type; }
+        public Builder type(Type type) {
+            this.type = type;
+            return this;
+        }
+
+        public Type getType() {
+            return type;
+        }
 
         /**
          * Maximum size of the queue before blocking
+         *
          * @param maxQueueSize maximum queue size
          * @return builder
          */
-        public Builder maxQueueSize(int maxQueueSize) { this.maxQueueSize = maxQueueSize; return this; }
-        public int getMaxQueueSize() { return maxQueueSize; }
+        public Builder maxQueueSize(int maxQueueSize) {
+            this.maxQueueSize = maxQueueSize;
+            return this;
+        }
+
+        public int getMaxQueueSize() {
+            return maxQueueSize;
+        }
 
         /**
          * Maximum number of tries. Set to zero for infinite.
-         * @param maxTries               maximum number of retries
+         *
+         * @param maxTries maximum number of retries
          * @return builder
          */
-        public Builder maxTries(int maxTries) { this.maxTries = maxTries; return this; }
-        public int getMaxTries() { return maxTries; }
+        public Builder maxTries(int maxTries) {
+            this.maxTries = maxTries;
+            return this;
+        }
+
+        public int getMaxTries() {
+            return maxTries;
+        }
 
         /**
          * Set fixed delay in retryDelayUnit between retries
-         * @param retryDelay             delay between retries
+         *
+         * @param retryDelay delay between retries
          * @return builder
          */
-        public Builder retryDelay(int retryDelay) { this.retryDelay = retryDelay; return this; }
-        public int getRetryDelay() { return retryDelay; }
+        public Builder retryDelay(int retryDelay) {
+            this.retryDelay = retryDelay;
+            return this;
+        }
+
+        public int getRetryDelay() {
+            return retryDelay;
+        }
 
         /**
          * Set maximum delay in retryDelayUnit between retries assuming exponential backoff enabled
-         * @param maxRetryDelay            maximum delay between retries
+         *
+         * @param maxRetryDelay maximum delay between retries
          * @return builder
          */
-        public Builder maxRetryDelay(int maxRetryDelay) { this.maxRetryDelay = maxRetryDelay; return this; }
-        public int getMaxRetryDelay() { return maxRetryDelay; }
+        public Builder maxRetryDelay(int maxRetryDelay) {
+            this.maxRetryDelay = maxRetryDelay;
+            return this;
+        }
+
+        public int getMaxRetryDelay() {
+            return maxRetryDelay;
+        }
 
         /**
          * Set delay between retries in persistRetryDelayUnit when processing items from queue database (on disk). Items are only put on disk
          * when the in-memory-processing-queue is full
-         * @param persistRetryDelay   maximum delay between retries for items on disk
+         *
+         * @param persistRetryDelay maximum delay between retries for items on disk
          * @return builder
          */
-        public Builder persistRetryDelay(int persistRetryDelay) { this.persistRetryDelay = persistRetryDelay; return this; }
-        public int getPersistRetryDelay() { return persistRetryDelay; }
+        public Builder persistRetryDelay(int persistRetryDelay) {
+            this.persistRetryDelay = persistRetryDelay;
+            return this;
+        }
+
+        public int getPersistRetryDelay() {
+            return persistRetryDelay;
+        }
 
         /**
          * Set persistent retry delay time unit. Default is seconds.
-         * @param persistRetryDelayUnit           persistent retry delay time unit
+         *
+         * @param persistRetryDelayUnit persistent retry delay time unit
          * @return builder
          */
-        public Builder persistRetryDelayUnit(TimeUnit persistRetryDelayUnit) { this.persistRetryDelayUnit = persistRetryDelayUnit; return this; }
-        public TimeUnit getPersistRetryDelayUnit() { return persistRetryDelayUnit; }
+        public Builder persistRetryDelayUnit(TimeUnit persistRetryDelayUnit) {
+            this.persistRetryDelayUnit = persistRetryDelayUnit;
+            return this;
+        }
+
+        public TimeUnit getPersistRetryDelayUnit() {
+            return persistRetryDelayUnit;
+        }
 
         /**
          * Set retry delay time unit. Default is seconds.
-         * @param retryDelayUnit           retry delay time unit
+         *
+         * @param retryDelayUnit retry delay time unit
          * @return builder
          */
-        public Builder retryDelayUnit(TimeUnit retryDelayUnit) { this.retryDelayUnit = retryDelayUnit; return this; }
-        public TimeUnit getRetryDelayUnit() { return retryDelayUnit; }
+        public Builder retryDelayUnit(TimeUnit retryDelayUnit) {
+            this.retryDelayUnit = retryDelayUnit;
+            return this;
+        }
+
+        public TimeUnit getRetryDelayUnit() {
+            return retryDelayUnit;
+        }
 
         /**
          * Set retry delay algorithm (FIXED or EXPONENTIAL)
-         * @param  retryDelayAlgorithm            set to either fixed or exponential backoff
+         *
+         * @param retryDelayAlgorithm set to either fixed or exponential backoff
          * @return builder
          */
-        public Builder retryDelayAlgorithm(RetryDelayAlgorithm retryDelayAlgorithm) { this.retryDelayAlgorithm = retryDelayAlgorithm; return this; }
-        public RetryDelayAlgorithm getRetryDelayAlgorithm() { return retryDelayAlgorithm; }
+        public Builder retryDelayAlgorithm(RetryDelayAlgorithm retryDelayAlgorithm) {
+            this.retryDelayAlgorithm = retryDelayAlgorithm;
+            return this;
+        }
+
+        public RetryDelayAlgorithm getRetryDelayAlgorithm() {
+            return retryDelayAlgorithm;
+        }
 
         /**
          * Set retry delay consumer
-         * @param  consumer            retry delay consumer
+         *
+         * @param consumer retry delay consumer
          * @return builder
          */
-        public Builder consumer(Consumer consumer) { this.consumer = consumer; return this; }
-        public Consumer getConsumer() { return consumer; }
+        public Builder consumer(Consumer consumer) {
+            this.consumer = consumer;
+            return this;
+        }
+
+        public Consumer getConsumer() {
+            return consumer;
+        }
 
         /**
          * Executor service
-         * @param executorService     executor Service
+         *
+         * @param executorService executor Service
          * @return builder
          */
-        public Builder executorService(ExecutorService executorService) { this.executorService = executorService; return this; }
-        public ExecutorService executorService() { return executorService; }
+        public Builder executorService(ExecutorService executorService) {
+            this.executorService = executorService;
+            return this;
+        }
+
+        public ExecutorService executorService() {
+            return executorService;
+        }
 
         /**
          * Set retry delay expiration
-         * @param  expiration            retry delay expiration
+         *
+         * @param expiration retry delay expiration
          * @return builder
          */
-        public Builder expiration(Expiration expiration) { this.expiration = expiration; return this; }
-        public Expiration getExpiration() { return expiration; }
+        public Builder expiration(Expiration expiration) {
+            this.expiration = expiration;
+            return this;
+        }
 
-        public Builder objectMapper(ObjectMapper objectMapper){this.objectMapper = objectMapper;return this;}
+        public Expiration getExpiration() {
+            return expiration;
+        }
+
+        public Builder objectMapper(ObjectMapper objectMapper) {
+            this.objectMapper = objectMapper;
+            return this;
+        }
 
         public QueueProcessor build() throws IOException, IllegalStateException, IllegalArgumentException, InterruptedException {
             return new QueueProcessor(this);
@@ -238,7 +343,8 @@ public class QueueProcessor<T> {
 
     /**
      * Create a new QueueProcessor
-     * @param builder                   queue processor builder
+     *
+     * @param builder queue processor builder
      * @throws IllegalStateException    if the queue is not running
      * @throws IllegalArgumentException if the type cannot be serialized by jackson
      * @throws IOException              if the item could not be serialized
@@ -250,39 +356,41 @@ public class QueueProcessor<T> {
         if (builder.type == null) throw new IllegalArgumentException("item type must be specified");
         if (builder.consumer == null) throw new IllegalArgumentException("consumer must be specified");
         objectMapper = createObjectMapper();
-        if (!objectMapper.canSerialize(objectMapper.constructType(builder.type).getClass())) throw new IllegalArgumentException("The given type is not serializable. it cannot be serialized by jackson");
-        this.queueName       = builder.queueName;
-        this.queuePath       = builder.queuePath;
-        this.consumer        = builder.consumer;
+        if (!objectMapper.canSerialize(objectMapper.constructType(builder.type).getClass()))
+            throw new IllegalArgumentException("The given type is not serializable. it cannot be serialized by jackson");
+        this.queueName = builder.queueName;
+        this.queuePath = builder.queuePath;
+        this.consumer = builder.consumer;
         this.executorService = builder.executorService;
-        this.expiration      = builder.expiration;
-        this.type            = builder.type;
-        this.maxTries        = builder.maxTries;
-        this.retryDelay      = builder.retryDelay;
-        this.retryDelayUnit  = builder.retryDelayUnit;
-        this.maxRetryDelay   = builder.maxRetryDelay;
-        this.maxQueueSize    = builder.maxQueueSize;
-        this.retryDelayAlgorithm    = builder.retryDelayAlgorithm;
-        mvStoreQueue                = new MVStoreQueue(builder.queuePath, builder.queueName);
-        if (builder.persistRetryDelay<=0)
-            this.persistRetryDelay  = retryDelay <= 1 ? 1 : retryDelay / 2;
+        this.expiration = builder.expiration;
+        this.type = builder.type;
+        this.maxTries = builder.maxTries;
+        this.retryDelay = builder.retryDelay;
+        this.retryDelayUnit = builder.retryDelayUnit;
+        this.maxRetryDelay = builder.maxRetryDelay;
+        this.maxQueueSize = builder.maxQueueSize;
+        this.retryDelayAlgorithm = builder.retryDelayAlgorithm;
+        mvStoreQueue = new MVStoreQueue(builder.queuePath, builder.queueName);
+        if (builder.persistRetryDelay <= 0)
+            this.persistRetryDelay = retryDelay <= 1 ? 1 : retryDelay / 2;
         else
-            this.persistRetryDelay  = builder.persistRetryDelay;
-        this.persistRetryDelayUnit  = builder.persistRetryDelayUnit;
+            this.persistRetryDelay = builder.persistRetryDelay;
+        this.persistRetryDelayUnit = builder.persistRetryDelayUnit;
         cleanupTaskScheduler = Optional.of(mvstoreCleanUPScheduler.scheduleWithFixedDelay(new MVStoreCleaner(this), 0, persistRetryDelay, persistRetryDelayUnit));
         setMaxQueueSize(builder.maxQueueSize);
     }
 
     /**
      * Get a diff between two dates
+     *
      * @param date1 the oldest date
      * @param date2 the newest date
-     * @param unit the unit in which you want the diff
+     * @param unit  the unit in which you want the diff
      * @return the diff value, in the provided unit
      */
     private static long dateDiff(Date date1, Date date2, TimeUnit unit) {
         long diffInMillies = date2.getTime() - date1.getTime();
-        return unit.convert(diffInMillies,TimeUnit.MILLISECONDS);
+        return unit.convert(diffInMillies, TimeUnit.MILLISECONDS);
     }
 
 
@@ -295,14 +403,16 @@ public class QueueProcessor<T> {
     }
 
 
-    public int availablePermits() { return permits.availablePermits(); }
+    public int availablePermits() {
+        return permits.availablePermits();
+    }
 
     /**
      * Submit item for instant processing with embedded pool. If item can't be processed instant
      * it will be queued on filesystem and processed after.
      *
-     * @param item queue item
-     * @param acquireWait block for x msec
+     * @param item            queue item
+     * @param acquireWait     block for x msec
      * @param acquireWaitUnit wait block for time unit
      * @throws IllegalStateException if the queue is not running
      * @throws IOException           if the item could not be serialized
@@ -363,7 +473,7 @@ public class QueueProcessor<T> {
         this.maxQueueSize = maxQueueSize;
         permits.release(permits.drainPermits());
         permits.setMaxPermits(this.maxQueueSize);
-        permits.acquire((int)mvStoreQueue.size() > this.maxQueueSize ? this.maxQueueSize : (int)mvStoreQueue.size());
+        permits.acquire((int) mvStoreQueue.size() > this.maxQueueSize ? this.maxQueueSize : (int) mvStoreQueue.size());
     }
 
     public long size() {
@@ -371,13 +481,14 @@ public class QueueProcessor<T> {
     }
 
     private void tryItem(T item) {
-            ((FileQueueItem) item).setTryDate(new Date());
-            ((FileQueueItem) item).incTryCount();
-          //  System.out.println("try count "+((FileQueueItem) item).getTryCount());
+        ((FileQueueItem) item).setTryDate(new Date());
+        ((FileQueueItem) item).incTryCount();
+        //  System.out.println("try count "+((FileQueueItem) item).getTryCount());
     }
 
     /**
      * Create the {@link ObjectMapper} used for serializing.
+     *
      * @return the configured {@link ObjectMapper}.
      */
     private ObjectMapper createObjectMapper() {
@@ -395,16 +506,17 @@ public class QueueProcessor<T> {
     private boolean isTimeToRetry(T item) {
         switch (retryDelayAlgorithm) {
             case EXPONENTIAL:
-                long tryDelay = Math.round(Math.pow(2,  ((FileQueueItem) item).getTryCount()));
+                long tryDelay = Math.round(Math.pow(2, ((FileQueueItem) item).getTryCount()));
                 tryDelay = tryDelay > maxRetryDelay ? maxRetryDelay : tryDelay;
                 tryDelay = tryDelay < retryDelay ? retryDelay : tryDelay;
                 return isTimeToRetry(item, tryDelay, retryDelayUnit);
-            default:  return isTimeToRetry(item, retryDelay, retryDelayUnit);
+            default:
+                return isTimeToRetry(item, retryDelay, retryDelayUnit);
         }
     }
 
     private boolean isTimeToRetry(T item, long retryDelay, TimeUnit timeUnit) {
-        return ((FileQueueItem) item).getTryDate() == null  || dateDiff(((FileQueueItem) item).getTryDate(), new Date(), timeUnit) > retryDelay;
+        return ((FileQueueItem) item).getTryDate() == null || dateDiff(((FileQueueItem) item).getTryDate(), new Date(), timeUnit) > retryDelay;
     }
 
     private T deserialize(final byte[] data) {
@@ -444,14 +556,19 @@ public class QueueProcessor<T> {
             return false;
         }
 
-        private void flagPush() { pushback = true; }
-        private boolean isPushBack() { return pushback; }
+        private void flagPush() {
+            pushback = true;
+        }
+
+        private boolean isPushBack() {
+            return pushback;
+        }
 
         @Override
         public void run() {
             try {
                 queueProcessor.tryItem(item);
-                if (consumer.consume(item)==Consumer.Result.FAIL_REQUEUE)
+                if (consumer.consume(item) == Consumer.Result.FAIL_REQUEUE)
                     flagPush();
             } catch (InterruptedException e) {
                 flagPush();
@@ -536,73 +653,111 @@ public class QueueProcessor<T> {
 
     /**
      * Get queue path
+     *
      * @return queue path
      */
-    public Path getQueuePath() {return queuePath; }
+    public Path getQueuePath() {
+        return queuePath;
+    }
 
     /**
      * Get queue name
+     *
      * @return queue name
      */
-    public String getQueueName() { return queueName; }
+    public String getQueueName() {
+        return queueName;
+    }
+
     /**
      * Get retry delay consumer
+     *
      * @return retry delay consumer
      */
 
-    public Consumer getConsumer() {return consumer; }
+    public Consumer getConsumer() {
+        return consumer;
+    }
 
     /**
      * Get queue item type
+     *
      * @return type
      */
-    public Type getType() { return type; }
+    public Type getType() {
+        return type;
+    }
+
     /**
      * Maximum number of tries. Set to zero for infinite.
+     *
      * @return maximum number of retries
      */
-    public int getMaxTries() { return maxTries; }
+    public int getMaxTries() {
+        return maxTries;
+    }
 
     /**
      * Get fixed delay in retryDelayUnit between retries
+     *
      * @return delay between retries
      */
-    public int getRetryDelay() { return retryDelay; }
+    public int getRetryDelay() {
+        return retryDelay;
+    }
 
     /**
      * Get maximum delay in retryDelayUnit between retries assuming exponential backoff enabled
+     *
      * @return maximum delay between retries
      */
-    public int getMaxRetryDelay() { return maxRetryDelay; }
+    public int getMaxRetryDelay() {
+        return maxRetryDelay;
+    }
 
     /**
      * Get retry delay time unit
+     *
      * @return retry delay time unit
      */
-    public TimeUnit getRetryDelayUnit() { return retryDelayUnit; }
+    public TimeUnit getRetryDelayUnit() {
+        return retryDelayUnit;
+    }
 
     /**
      * Get retry delay algorithm (FIXED or EXPONENTIAL)
+     *
      * @return either fixed or exponential backoff
      */
-    public RetryDelayAlgorithm getRetryDelayAlgorithm() { return retryDelayAlgorithm;}
+    public RetryDelayAlgorithm getRetryDelayAlgorithm() {
+        return retryDelayAlgorithm;
+    }
 
     /**
      * Get retry delay expiration
+     *
      * @return retry delay expiration
      */
-    public Expiration getExpiration() { return expiration; }
+    public Expiration getExpiration() {
+        return expiration;
+    }
 
     /**
      * Get delay between processing items in queue database (on disk).
+     *
      * @return persistent retry delay
      */
-    public int getPersistRetryDelay() { return persistRetryDelay; }
+    public int getPersistRetryDelay() {
+        return persistRetryDelay;
+    }
 
     /**
      * Get persistent retry delay time unit
+     *
      * @return cleanup delay time unit
      */
-    public TimeUnit getPersistRetryDelayUnit() { return retryDelayUnit; }
+    public TimeUnit getPersistRetryDelayUnit() {
+        return retryDelayUnit;
+    }
 
 }
