@@ -87,7 +87,7 @@ public class QueueProcessor<T> {
      * @throws IOException              if the item could not be serialized
      */
 
-    QueueProcessor(QueueProcessorBuilder<? super T> builder) throws IOException, IllegalStateException, IllegalArgumentException, InterruptedException {
+    QueueProcessor(QueueProcessorBuilder<T> builder) throws IOException, IllegalStateException, IllegalArgumentException, InterruptedException {
         if (builder.queueName == null) throw new IllegalArgumentException("queue name must be specified");
         if (builder.queuePath == null) throw new IllegalArgumentException("queue path must be specified");
         if (builder.type == null) throw new IllegalArgumentException("item type must be specified");
@@ -322,24 +322,24 @@ public class QueueProcessor<T> {
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null) return false;
-            if (getClass() != o.getClass()) return false;
-            ProcessItem p = (ProcessItem) o;
-            return Objects.equals(item.toString(), p.item.toString());
+            if (!(o instanceof ProcessItem)) return false;
+            ProcessItem<?> that = (ProcessItem) o;
+
+            return Objects.equals(item.toString(), that.item.toString());
         }
 
         @Override
         public int hashCode() {
-            return item.toString().hashCode();
+            return item != null ? item.toString().hashCode() : 0;
         }
-
     }
 
 
     private final class MVStoreCleaner implements Runnable {
 
-        private final QueueProcessor queueProcessor;
+        private final QueueProcessor<T> queueProcessor;
 
-        MVStoreCleaner(QueueProcessor queueProcessor) {
+        MVStoreCleaner(QueueProcessor<T> queueProcessor) {
             this.queueProcessor = queueProcessor;
         }
 

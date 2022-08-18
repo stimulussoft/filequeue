@@ -22,15 +22,15 @@ public final class QueueProcessorBuilder<T> {
     protected int maxRetryDelay = 1;
     protected TimeUnit retryDelayUnit = TimeUnit.SECONDS;
     protected TimeUnit persistRetryDelayUnit = TimeUnit.SECONDS;
-    protected Consumer consumer;
-    protected Expiration expiration;
+    protected Consumer<T> consumer;
+    protected Expiration<T> expiration;
     protected ExecutorService executorService;
     protected QueueProcessor.RetryDelayAlgorithm retryDelayAlgorithm = QueueProcessor.RetryDelayAlgorithm.FIXED;
     protected ObjectMapper objectMapper = null;
     protected int maxQueueSize = Integer.MAX_VALUE;
 
-    public static <T1> QueueProcessorBuilder<T1> builder(String queueName, Path queuePath, Class type,
-                                                     Consumer<? super T1> consumer, ExecutorService executor) throws IllegalArgumentException {
+    public static <T1> QueueProcessorBuilder<T1> builder(String queueName, Path queuePath, Class<T1> type,
+                                                     Consumer<T1> consumer, ExecutorService executor) throws IllegalArgumentException {
         return new QueueProcessorBuilder<>(queueName, queuePath, type, consumer, executor);
     }
 
@@ -42,7 +42,7 @@ public final class QueueProcessorBuilder<T> {
 
     }
 
-    private QueueProcessorBuilder(String queueName, Path queuePath, Class type, Consumer<? super T> consumer, ExecutorService executorService) throws IllegalArgumentException {
+    private QueueProcessorBuilder(String queueName, Path queuePath, Class type, Consumer<T> consumer, ExecutorService executorService) throws IllegalArgumentException {
         if (queueName == null) throw new IllegalArgumentException("queue name must be specified");
         if (queuePath == null) throw new IllegalArgumentException("queue path must be specified");
         if (type == null) throw new IllegalArgumentException("item type must be specified");
@@ -226,7 +226,7 @@ public final class QueueProcessorBuilder<T> {
      * @param consumer retry delay consumer
      * @return builder
      */
-    public QueueProcessorBuilder consumer(Consumer consumer) {
+    public QueueProcessorBuilder<T> consumer(Consumer<T> consumer) {
         this.consumer = consumer;
         return this;
     }
@@ -256,12 +256,12 @@ public final class QueueProcessorBuilder<T> {
      * @param expiration retry delay expiration
      * @return builder
      */
-    public QueueProcessorBuilder expiration(Expiration expiration) {
+    public QueueProcessorBuilder<T> expiration(Expiration<T> expiration) {
         this.expiration = expiration;
         return this;
     }
 
-    public Expiration getExpiration() {
+    public Expiration<T> getExpiration() {
         return expiration;
     }
 

@@ -85,6 +85,7 @@ public final class FileQueue<T> {
     private final AtomicBoolean isStarted = new AtomicBoolean();
     private QueueProcessor<T> transferQueue;
     private Config config;
+    private final Consumer<T> fileQueueConsumer = item -> config.getConsumer().consume(item);
 
     /**
      * Create @{@link FileQueue}.
@@ -111,15 +112,6 @@ public final class FileQueue<T> {
         Runtime.getRuntime().addShutdownHook(shutdownHook);
         isStarted.set(true);
     }
-
-    // this class is neeeded to release permit after processing an item
-
-    private final Consumer<T> fileQueueConsumer = item -> {
-        Consumer.Result result = Consumer.Result.FAIL_NOQUEUE;
-        result = config.getConsumer().consume(item);
-        return result;
-    };
-
 
     /**
      * Get currently active configuration.
@@ -152,7 +144,7 @@ public final class FileQueue<T> {
      * </p>
      **/
 
-    public static class Config<T> {
+    public static class Config {
 
         private Consumer consumer;
 
@@ -168,7 +160,7 @@ public final class FileQueue<T> {
          * @param executorService thread pool to process items
          */
 
-        public Config(String queueName, Path queuePath, Class type, Consumer consumer, ExecutorService executorService) {
+        public <T> Config(String queueName, Path queuePath, Class<? extends T> type, Consumer<? super T> consumer, ExecutorService executorService) {
             builder = builder.type(type).queueName(queueName).queuePath(queuePath).executorService(executorService);
             this.consumer = consumer;
         }
@@ -335,12 +327,12 @@ public final class FileQueue<T> {
          * @param consumer retry delay consumer
          * @return config configuration
          */
-        public Config consumer(Consumer<T> consumer) {
+        public <T> Config consumer(Consumer<T> consumer) {
             this.consumer = consumer;
             return this;
         }
 
-        public Consumer getConsumer() {
+        public <T> Consumer getConsumer() {
             return consumer;
         }
 
@@ -350,12 +342,12 @@ public final class FileQueue<T> {
          * @param expiration retry delay expiration
          * @return config configuration
          */
-        public Config expiration(Expiration<T> expiration) {
+        public <T> Config expiration(Expiration<T> expiration) {
             builder = builder.expiration(expiration);
             return this;
         }
 
-        public Expiration getExpiration() {
+        public <T> Expiration getExpiration() {
             return builder.getExpiration();
         }
 
@@ -386,8 +378,8 @@ public final class FileQueue<T> {
      * @return config configuration
      */
 
-    public static Config config(String queueName, Path queuePath, Class type, Consumer consumer, ExecutorService executorService) {
-        return new Config<FileQueueItem>(queueName, queuePath, type, consumer, executorService);
+    public static <T> Config config(String queueName, Path queuePath, Class<? extends T> type, Consumer<? super T> consumer, ExecutorService executorService) {
+        return new Config(queueName, queuePath, type, consumer, executorService);
     }
 
     /**
@@ -402,7 +394,7 @@ public final class FileQueue<T> {
      */
 
     @VisibleForTesting
-    public void queueItem(final T fileQueueItem, QueueCallback queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
+    public void queueItem(final T fileQueueItem, QueueCallback<T> queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
         if (fileQueueItem == null)
             throw new IllegalArgumentException("filequeue item cannot be null");
 
