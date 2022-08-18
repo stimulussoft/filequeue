@@ -13,6 +13,7 @@
  */
 
 package com.stimulussoft.filequeue;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.stimulussoft.filequeue.processor.Consumer;
 import com.stimulussoft.filequeue.processor.Expiration;
@@ -51,7 +52,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 5) Call stopQueue() to stop the filequeue processing<br>
  * </p>
  * Example usage below:<br>
- *<pre>{@code
+ * <pre>{@code
  * FileQueue queue = FileQueue.fileQueue();
  * FileQueue.Config config = FileQueue.config(queueName,queuePath,TestFileQueueItem.class, new TestConsumer())
  *                           .maxQueueSize(MAXQUEUESIZE)
@@ -64,20 +65,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *     queue.queueItem(new TestFileQueueItem(i));
  * // when finished call stopQueue
  * queue.stopQueue();
- *}</pre>
+ * }</pre>
  * <p>
  * To see example, refer to com.stimulussoft.filequeue.FileQueueTest<br>
  * </p>
  * <p>
- *  To see example, refer to com.stimulussoft.filequeue.FileQueueTest<br>
+ * To see example, refer to com.stimulussoft.filequeue.FileQueueTest<br>
  * </p>
+ *
  * @author Jamie Band (Stimulus Software)
  * @author Valentin Popov (Stimulus Software)
  */
 
 public final class FileQueue<T> {
 
-    public enum RetryDelayAlgorithm { FIXED, EXPONENTIAL }
+    public enum RetryDelayAlgorithm {FIXED, EXPONENTIAL}
+
     private ShutdownHook shutdownHook;
     private final AtomicBoolean isStarted = new AtomicBoolean();
     private QueueProcessor<T> transferQueue;
@@ -92,9 +95,10 @@ public final class FileQueue<T> {
 
     /**
      * Start the queue engine
+     *
      * @param config queue configuration. call config() to setup file queue configuration.
-     * @throws IOException if error reading the db
-     * @throws InterruptedException interruption due to shutdown
+     * @throws IOException              if error reading the db
+     * @throws InterruptedException     interruption due to shutdown
      * @throws IllegalArgumentException wrong arguments
      */
 
@@ -119,6 +123,7 @@ public final class FileQueue<T> {
 
     /**
      * Get currently active configuration.
+     *
      * @return configuration
      */
 
@@ -143,7 +148,7 @@ public final class FileQueue<T> {
 
     /**
      * <p>
-     *  Queue configuration builder
+     * Queue configuration builder
      * </p>
      **/
 
@@ -155,10 +160,11 @@ public final class FileQueue<T> {
 
         /**
          * Rather use FileQueue.config(..) to build a new queue configuration.
-         * @param queueName name of the queue. Any name can be chosen, so long as it is unique among queues.
-         * @param queuePath writeable path where the queue database will be stored
-         * @param type type of queue item
-         * @param consumer callback to process items in the queue
+         *
+         * @param queueName       name of the queue. Any name can be chosen, so long as it is unique among queues.
+         * @param queuePath       writeable path where the queue database will be stored
+         * @param type            type of queue item
+         * @param consumer        callback to process items in the queue
          * @param executorService thread pool to process items
          */
 
@@ -167,133 +173,220 @@ public final class FileQueue<T> {
             this.consumer = consumer;
         }
 
-        public Config() { }
+        public Config() {
+        }
 
         /**
          * Queue path
-         * @param queuePath             path to queue database
+         *
+         * @param queuePath path to queue database
          * @return config configuration
          */
-        public Config queuePath(Path queuePath) { builder = builder.queuePath(queuePath); return this; }
-        public Path getQueuePath() { return builder.getQueuePath(); }
+        public Config queuePath(Path queuePath) {
+            builder = builder.queuePath(queuePath);
+            return this;
+        }
+
+        public Path getQueuePath() {
+            return builder.getQueuePath();
+        }
 
         /**
          * Queue name
-         * @param queueName              friendly name for the queue
+         *
+         * @param queueName friendly name for the queue
          * @return config configuration
          */
-        public  Config queueName(String queueName) { builder = builder.queueName(queueName); return this; }
-        public String getQueueName() { return builder.getQueueName(); }
+        public Config queueName(String queueName) {
+            builder = builder.queueName(queueName);
+            return this;
+        }
+
+        public String getQueueName() {
+            return builder.getQueueName();
+        }
 
         /**
          * Type of queue item
-         * @param type                   filequeueitem type
+         *
+         * @param type filequeueitem type
          * @return config configuration
          */
         public Config type(Type type) throws IllegalArgumentException {
             if (type == FileQueueItem.class || !FileQueueItem.class.isAssignableFrom(type.getClass()))
                 throw new IllegalArgumentException("type must be a subclass of filequeueitem");
-            builder = builder.type(type); return this;
+            builder = builder.type(type);
+            return this;
         }
-        public Type getType() { return builder.getType(); }
+
+        public Type getType() {
+            return builder.getType();
+        }
 
         /**
          * Maximum number of tries. Set to zero for infinite.
-         * @param maxTries               maximum number of retries
-         * @return config configuration
          *
+         * @param maxTries maximum number of retries
+         * @return config configuration
          */
-        public  Config maxTries(int maxTries) {builder = builder.maxTries(maxTries); return this; }
-        public int getMaxTries() { return builder.getMaxTries(); }
+        public Config maxTries(int maxTries) {
+            builder = builder.maxTries(maxTries);
+            return this;
+        }
+
+        public int getMaxTries() {
+            return builder.getMaxTries();
+        }
 
         /**
          * Set fixed delay between retries
-         * @param retryDelay             delay between retries
+         *
+         * @param retryDelay delay between retries
          * @return config configuration
          */
-        public  Config retryDelay(int retryDelay) { builder = builder.retryDelay(retryDelay); return this; }
-        public int getRetryDelay() { return builder.getRetryDelay(); }
+        public Config retryDelay(int retryDelay) {
+            builder = builder.retryDelay(retryDelay);
+            return this;
+        }
+
+        public int getRetryDelay() {
+            return builder.getRetryDelay();
+        }
 
         /**
          * Set retry delay between retries from items in database (on disk)
-         * @param retryDelay             delay between retries
+         *
+         * @param retryDelay delay between retries
          * @return config configuration
          */
-        public  Config persistRetryDelay(int retryDelay) { builder = builder.persistRetryDelay(retryDelay); return this; }
-        public int getPersistRetryDelay() { return builder.getPersistRetryDelay(); }
+        public Config persistRetryDelay(int retryDelay) {
+            builder = builder.persistRetryDelay(retryDelay);
+            return this;
+        }
+
+        public int getPersistRetryDelay() {
+            return builder.getPersistRetryDelay();
+        }
 
         /**
          * Set  persist retry delay time unit
-         * @param persistRetryDelayUnit  persist retry delay timeunit
+         *
+         * @param persistRetryDelayUnit persist retry delay timeunit
          * @return config configuration
          */
-        public  Config persistRetryDelayUnit(TimeUnit persistRetryDelayUnit) { builder = builder.persistRetryDelayUnit(persistRetryDelayUnit); return this; }
-        public TimeUnit getPersistRetryDelayUnit() { return builder.getPersistRetryDelayUnit(); }
+        public Config persistRetryDelayUnit(TimeUnit persistRetryDelayUnit) {
+            builder = builder.persistRetryDelayUnit(persistRetryDelayUnit);
+            return this;
+        }
+
+        public TimeUnit getPersistRetryDelayUnit() {
+            return builder.getPersistRetryDelayUnit();
+        }
 
         /**
          * Set maximum delay between retries assuming exponential backoff enabled
-         * @param maxRetryDelay            maximum delay between retries
+         *
+         * @param maxRetryDelay maximum delay between retries
          * @return config configuration
          */
-        public  Config maxRetryDelay(int maxRetryDelay) { builder = builder.maxRetryDelay(maxRetryDelay); return this; }
-        public int getMaxRetryDelay() { return builder.getMaxRetryDelay(); }
+        public Config maxRetryDelay(int maxRetryDelay) {
+            builder = builder.maxRetryDelay(maxRetryDelay);
+            return this;
+        }
+
+        public int getMaxRetryDelay() {
+            return builder.getMaxRetryDelay();
+        }
 
 
         /**
          * Set retry delay time unit
-         * @param retryDelayUnit           retry delay time unit
+         *
+         * @param retryDelayUnit retry delay time unit
          * @return config configuration
          */
-        public  Config retryDelayUnit(TimeUnit retryDelayUnit) { builder = builder.retryDelayUnit(retryDelayUnit); return this; }
-        public TimeUnit getRetryDelayUnit() { return builder.getRetryDelayUnit(); }
+        public Config retryDelayUnit(TimeUnit retryDelayUnit) {
+            builder = builder.retryDelayUnit(retryDelayUnit);
+            return this;
+        }
+
+        public TimeUnit getRetryDelayUnit() {
+            return builder.getRetryDelayUnit();
+        }
 
         /**
          * Set retry delay algorithm (FIXED or EXPONENTIAL)
-         * @param  retryDelayAlgorithm            set to either fixed or exponential backoff
+         *
+         * @param retryDelayAlgorithm set to either fixed or exponential backoff
          * @return config configuration
          */
-        public Config retryDelayAlgorithm(RetryDelayAlgorithm retryDelayAlgorithm) {builder = builder.retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.valueOf(retryDelayAlgorithm.name())); return this; }
-        public RetryDelayAlgorithm getRetryDelayAlgorithm() { return RetryDelayAlgorithm.valueOf(builder.getRetryDelayAlgorithm().name()); }
+        public Config retryDelayAlgorithm(RetryDelayAlgorithm retryDelayAlgorithm) {
+            builder = builder.retryDelayAlgorithm(QueueProcessor.RetryDelayAlgorithm.valueOf(retryDelayAlgorithm.name()));
+            return this;
+        }
+
+        public RetryDelayAlgorithm getRetryDelayAlgorithm() {
+            return RetryDelayAlgorithm.valueOf(builder.getRetryDelayAlgorithm().name());
+        }
 
         /**
          * Set retry delay consumer
-         * @param  consumer            retry delay consumer
+         *
+         * @param consumer retry delay consumer
          * @return config configuration
          */
         public Config consumer(Consumer<T> consumer) {
-            this.consumer = consumer; return this;
+            this.consumer = consumer;
+            return this;
         }
 
-        public Consumer getConsumer() { return consumer; }
+        public Consumer getConsumer() {
+            return consumer;
+        }
 
         /**
          * Set retry delay expiration
-         * @param  expiration            retry delay expiration
+         *
+         * @param expiration retry delay expiration
          * @return config configuration
          */
-        public  Config expiration(Expiration<T> expiration) { builder = builder.expiration(expiration); return this; }
-        public Expiration getExpiration() { return builder.getExpiration(); }
+        public Config expiration(Expiration<T> expiration) {
+            builder = builder.expiration(expiration);
+            return this;
+        }
+
+        public Expiration getExpiration() {
+            return builder.getExpiration();
+        }
 
         /**
          * Set max queue size
-         * @param  maxQueueSize            maximum size of queue
+         *
+         * @param maxQueueSize maximum size of queue
          * @return config configuration
          */
-        public  Config maxQueueSize(int maxQueueSize) { builder = builder.maxQueueSize(maxQueueSize); return this; }
-        public int getMaxQueueSize() { return builder.getMaxQueueSize(); }
+        public Config maxQueueSize(int maxQueueSize) {
+            builder = builder.maxQueueSize(maxQueueSize);
+            return this;
+        }
+
+        public int getMaxQueueSize() {
+            return builder.getMaxQueueSize();
+        }
 
     }
 
     /**
      * Setup a file queue configuration for pass to startQueue()
-     *  @param queueName   name of the queue
-     *  @param queuePath   location of queue database
-     *  @param type        type of filequeueitem
-     *  @param consumer    consumer
-     *  @return config configuration
+     *
+     * @param queueName name of the queue
+     * @param queuePath location of queue database
+     * @param type      type of filequeueitem
+     * @param consumer  consumer
+     * @return config configuration
      */
 
-    public static  Config config(String queueName, Path queuePath, Class type, Consumer consumer, ExecutorService executorService) {
+    public static Config config(String queueName, Path queuePath, Class type, Consumer consumer, ExecutorService executorService) {
         return new Config<FileQueueItem>(queueName, queuePath, type, consumer, executorService);
     }
 
@@ -305,8 +398,7 @@ public final class FileQueue<T> {
      * @param queueCallback   availableSlot method is executed when slot becomes available
      * @param acquireWait     time to wait before checking if shutdown has occurred
      * @param acquireWaitUnit time unit for acquireWait
-
-     * @throws Exception   thrown if could not obtain an open slot (i.e. queue is full)
+     * @throws Exception thrown if could not obtain an open slot (i.e. queue is full)
      */
 
     @VisibleForTesting
@@ -334,25 +426,25 @@ public final class FileQueue<T> {
      * @param fileQueueItem   item for queuing
      * @param acquireWait     time to wait before checking if shutdown has occurred
      * @param acquireWaitUnit time unit for acquireWait
-     * @throws IOException   thrown if could not obtain an open slot (i.e. queue is full)
+     * @throws IOException          thrown if could not obtain an open slot (i.e. queue is full)
      * @throws InterruptedException queuing was interrupted due to shutdown
      */
 
-     public void queueItem(final T fileQueueItem, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
-         if (fileQueueItem == null)
-             throw new IllegalArgumentException("filequeue item cannot be null");
+    public void queueItem(final T fileQueueItem, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
+        if (fileQueueItem == null)
+            throw new IllegalArgumentException("filequeue item cannot be null");
 
-         if (!isStarted.get())
-             throw new IllegalStateException("queue not started");
+        if (!isStarted.get())
+            throw new IllegalStateException("queue not started");
 
-         try {
-             transferQueue.submit(fileQueueItem, acquireWait, acquireWaitUnit);
-             // mvstore throws a null ptr exception when out of disk space
-         } catch (NullPointerException npe) {
-             throw new IOException("not enough disk space");
-         } catch (Exception e) {
-             throw e;
-         }
+        try {
+            transferQueue.submit(fileQueueItem, acquireWait, acquireWaitUnit);
+            // mvstore throws a null ptr exception when out of disk space
+        } catch (NullPointerException npe) {
+            throw new IOException("not enough disk space");
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
     /**
@@ -360,7 +452,7 @@ public final class FileQueue<T> {
      *
      * @param fileQueueItem item for queuing
      * @throws IllegalArgumentException if the wrong arguments were supplied
-     * @throws IOException if the item could not be serialized
+     * @throws IOException              if the item could not be serialized
      */
 
     public void queueItem(final T fileQueueItem) throws Exception {
@@ -379,7 +471,6 @@ public final class FileQueue<T> {
             throw e;
         }
     }
-
 
 
     /**
@@ -407,7 +498,6 @@ public final class FileQueue<T> {
     }
 
 
-
     /**
      * Return no items in filequeue
      * @return no queued items
@@ -428,21 +518,25 @@ public final class FileQueue<T> {
         @Override
         public void run() {
             shutdownHook = null;
-            try { stopQueue(); } catch (IllegalStateException ignored) {}
+            try {
+                stopQueue();
+            } catch (IllegalStateException ignored) {
+            }
         }
     }
 
 
     /**
      * Destroy processor thread pool. Call to explicitly shutdown all pools.
-     *
      */
 
     public static void destroy() {
         QueueProcessor.destroy();
     }
 
-    public static FileQueue<FileQueueItem> fileQueue() { return new FileQueue<>(); }
+    public static FileQueue<FileQueueItem> fileQueue() {
+        return new FileQueue<>();
+    }
 
 
     protected int availablePermits() {
@@ -450,5 +544,5 @@ public final class FileQueue<T> {
         return transferQueue.availablePermits();
     }
 
- }
+}
 
