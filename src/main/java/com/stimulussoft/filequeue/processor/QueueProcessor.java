@@ -305,9 +305,8 @@ public class QueueProcessor<T> {
                 queueProcessor.tryItem(item);
                 if (consumer.consume(item) == Consumer.Result.FAIL_REQUEUE)
                     flagPush();
-            } catch (InterruptedException e) {
+            } catch (IllegalStateException e) {
                 flagPush();
-                Thread.currentThread().interrupt();
             } catch (Throwable e) {
                 logger.error("failed to process item {" + item.toString() + "}", e);
             } finally {

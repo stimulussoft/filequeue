@@ -56,9 +56,9 @@ public interface Consumer<T> {
      *
      * @param item to handle.
      * @return {@code SUCCESS} if the item was processed successfully and shall be removed from the filequeue.
-     * @throws InterruptedException if thread was interrupted due to shutdown
+     * @throws IllegalStateException if consumer can't process item exact now
      */
 
-    Result consume(T item) throws InterruptedException;
+    Result consume(T item);
 
 }

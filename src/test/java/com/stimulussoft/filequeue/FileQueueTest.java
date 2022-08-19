@@ -568,7 +568,7 @@ public class FileQueueTest {
 
         public TestShutdownConsumer() { }
 
-        public Result consume(FileQueueItem item) throws InterruptedException {
+        public Result consume(FileQueueItem item) {
             processedTestPersist.incrementAndGet();
             return Result.SUCCESS;
         }

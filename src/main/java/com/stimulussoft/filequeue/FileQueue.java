@@ -394,7 +394,7 @@ public final class FileQueue<T> {
      */
 
     @VisibleForTesting
-    public void queueItem(final T fileQueueItem, QueueCallback<T> queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
+    public <T1 extends T> void queueItem(final T1 fileQueueItem, QueueCallback<T1> queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
         if (fileQueueItem == null)
             throw new IllegalArgumentException("filequeue item cannot be null");
 

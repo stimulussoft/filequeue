@@ -103,11 +103,16 @@ public class QueueProcessorTest {
         }
 
         @Override
-        public Result consume(Integer item) throws InterruptedException {
-            Thread.sleep(100);
-            phaser.arriveAndDeregister();
-            processed.incrementAndGet();
-            return Result.SUCCESS;
+        public Result consume(Integer item) {
+            try {
+                Thread.sleep(100);
+                phaser.arriveAndDeregister();
+                processed.incrementAndGet();
+                return Result.SUCCESS;
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("interrupted");
+            }
         }
     }
 
