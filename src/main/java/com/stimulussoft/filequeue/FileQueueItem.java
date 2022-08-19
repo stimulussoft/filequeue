@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class FileQueueItem implements Serializable {
 
-    private AtomicInteger retryCount = new AtomicInteger(0);
+    private final AtomicInteger retryCount = new AtomicInteger(0);
     private Date tryDate;
 
     public FileQueueItem() {
@@ -52,7 +52,7 @@ public abstract class FileQueueItem implements Serializable {
     }
 
     public void setTryDate(Date date) {
-        this.tryDate = date == null ? date : new Date(date.getTime());
+        this.tryDate = date == null ? null : new Date(date.getTime());
     }
 
     public int getTryCount() {

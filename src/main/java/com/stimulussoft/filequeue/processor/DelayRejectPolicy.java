@@ -66,11 +66,11 @@ public class DelayRejectPolicy implements RejectedExecutionHandler {
                 Thread.currentThread().interrupt();
                 throw new RejectedExecutionException("Task " + r.toString() +
                         " rejected from " +
-                        e.toString() + " due to interruption.");
+                        e + " due to interruption.");
             }
         } else
             throw new RejectedExecutionException("Task " + r.toString() +
                     " rejected from " +
-                    e.toString() + " shutdown.");
+                    e + " shutdown.");
     }
 }

@@ -31,4 +31,4 @@ public class AdjustableSemaphore extends Semaphore {
             reducePermits(numberOfPermits - desiredPermits);
         numberOfPermits = desiredPermits;
     }
-};
+}

@@ -95,7 +95,7 @@ public class ThreadUtil {
     }
 
     public static ExecutorService newFlexiThreadPool(int corePoolSize, int maximumPoolSize, ThreadFactory threadFactory) {
-        return new ThreadPoolExecutor(corePoolSize, maximumPoolSize, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(), threadFactory);
+        return new ThreadPoolExecutor(corePoolSize, maximumPoolSize, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
     }
 
     public static ExecutorService newFlexiThreadPool(int maximumPoolSize, ThreadFactory threadFactory) {
@@ -107,7 +107,7 @@ public class ThreadUtil {
         private final ThreadGroup group;
         private final AtomicInteger threadNumber = new AtomicInteger(1);
         private final String namePrefix;
-        private boolean daemon;
+        private final boolean daemon;
 
         ThreadGroupThreadFactory(ThreadGroup group, String threadName, boolean daemon) {
             this.group = (group != null) ? group : Thread.currentThread().getThreadGroup();

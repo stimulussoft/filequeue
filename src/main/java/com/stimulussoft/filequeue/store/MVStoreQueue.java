@@ -38,6 +38,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Fast queue implementation on top of MVStore. This class is thread-safe.
@@ -52,7 +53,7 @@ public class MVStoreQueue implements Comparable<MVStoreQueue> {
     private final String queueName;
     private MVMap<Integer, byte[]> mvMap;
     private MVStore store;
-    private Path queueDir;
+    private final Path queueDir;
     private final AtomicInteger tailKey = new AtomicInteger(0);
 
     static {
@@ -238,8 +239,8 @@ public class MVStoreQueue implements Comparable<MVStoreQueue> {
 
         @Override
         public List<FilePath> newDirectoryStream() {
-            try {
-                return Files.walk(decorated).map(JimFSDecorator::new).collect(Collectors.toList());
+            try(Stream<Path> pathStream = Files.walk(decorated)) {
+                return pathStream.map(JimFSDecorator::new).collect(Collectors.toList());
             } catch (IOException e) {
                 throw DbException.get(ErrorCode.IO_EXCEPTION_1, name, e.getMessage());
             }

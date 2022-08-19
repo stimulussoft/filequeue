@@ -41,7 +41,7 @@ import java.util.concurrent.*;
 
 public class QueueProcessor<T> {
 
-    private ExecutorService executorService;
+    private final ExecutorService executorService;
     private static final Logger logger = LoggerFactory.getLogger(QueueProcessor.class);
     private static final ScheduledExecutorService mvstoreCleanUPScheduler = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(),
             ThreadUtil.getFlexibleThreadFactory("mvstore-cleanup", true));
@@ -63,7 +63,7 @@ public class QueueProcessor<T> {
     private final Consumer<T> consumer;
     private final Expiration<T> expiration;
     private final Phaser restorePolled = new Phaser();
-    private Optional<ScheduledFuture<?>> cleanupTaskScheduler;
+    private final Optional<ScheduledFuture<?>> cleanupTaskScheduler;
     private volatile boolean doRun = true;
     private final int maxTries;
 
@@ -210,7 +210,7 @@ public class QueueProcessor<T> {
         this.maxQueueSize = maxQueueSize;
         permits.release(permits.drainPermits());
         permits.setMaxPermits(this.maxQueueSize);
-        permits.acquire((int) mvStoreQueue.size() > this.maxQueueSize ? this.maxQueueSize : (int) mvStoreQueue.size());
+        permits.acquire(Math.min((int) mvStoreQueue.size(), this.maxQueueSize));
     }
 
     public long size() {
@@ -241,15 +241,13 @@ public class QueueProcessor<T> {
     }
 
     private boolean isTimeToRetry(T item) {
-        switch (retryDelayAlgorithm) {
-            case EXPONENTIAL:
-                long tryDelay = Math.round(Math.pow(2, ((FileQueueItem) item).getTryCount()));
-                tryDelay = tryDelay > maxRetryDelay ? maxRetryDelay : tryDelay;
-                tryDelay = tryDelay < retryDelay ? retryDelay : tryDelay;
-                return isTimeToRetry(item, tryDelay, retryDelayUnit);
-            default:
-                return isTimeToRetry(item, retryDelay, retryDelayUnit);
+        if (retryDelayAlgorithm == RetryDelayAlgorithm.EXPONENTIAL) {
+            long tryDelay = Math.round(Math.pow(2, ((FileQueueItem) item).getTryCount()));
+            tryDelay = tryDelay > maxRetryDelay ? maxRetryDelay : tryDelay;
+            tryDelay = tryDelay < retryDelay ? retryDelay : tryDelay;
+            return isTimeToRetry(item, tryDelay, retryDelayUnit);
         }
+        return isTimeToRetry(item, retryDelay, retryDelayUnit);
     }
 
     private boolean isTimeToRetry(T item, long retryDelay, TimeUnit timeUnit) {
@@ -266,15 +264,15 @@ public class QueueProcessor<T> {
         }
     }
 
-    private class ProcessItem<T> implements Runnable {
+    private class ProcessItem<T1> implements Runnable {
 
-        private final Consumer<T> consumer;
-        private final Expiration<T> expiration;
-        private final T item;
-        private final QueueProcessor<T> queueProcessor;
+        private final Consumer<T1> consumer;
+        private final Expiration<T1> expiration;
+        private final T1 item;
+        private final QueueProcessor<T1> queueProcessor;
         private boolean pushback = false;
 
-        ProcessItem(Consumer<T> consumer, Expiration<T> expiration, T item, QueueProcessor<T> queueProcessor) {
+        ProcessItem(Consumer<T1> consumer, Expiration<T1> expiration, T1 item, QueueProcessor<T1> queueProcessor) {
             this.consumer = consumer;
             this.expiration = expiration;
             this.item = item;

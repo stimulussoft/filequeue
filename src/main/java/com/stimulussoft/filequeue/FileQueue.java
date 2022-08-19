@@ -161,7 +161,7 @@ public final class FileQueue<T> {
          */
 
         public <T> Config(String queueName, Path queuePath, Class<? extends T> type, Consumer<? super T> consumer, ExecutorService executorService) {
-            builder = builder.type(type).queueName(queueName).queuePath(queuePath).executorService(executorService);
+            builder.type(type).queueName(queueName).queuePath(queuePath).executorService(executorService);
             this.consumer = consumer;
         }
 
@@ -175,7 +175,7 @@ public final class FileQueue<T> {
          * @return config configuration
          */
         public Config queuePath(Path queuePath) {
-            builder = builder.queuePath(queuePath);
+            builder.queuePath(queuePath);
             return this;
         }
 
@@ -190,7 +190,7 @@ public final class FileQueue<T> {
          * @return config configuration
          */
         public Config queueName(String queueName) {
-            builder = builder.queueName(queueName);
+            builder.queueName(queueName);
             return this;
         }
 
@@ -207,7 +207,7 @@ public final class FileQueue<T> {
         public Config type(Type type) throws IllegalArgumentException {
             if (type == FileQueueItem.class || !FileQueueItem.class.isAssignableFrom(type.getClass()))
                 throw new IllegalArgumentException("type must be a subclass of filequeueitem");
-            builder = builder.type(type);
+            builder.type(type);
             return this;
         }
 
@@ -222,7 +222,7 @@ public final class FileQueue<T> {
          * @return config configuration
          */
         public Config maxTries(int maxTries) {
-            builder = builder.maxTries(maxTries);
+            builder.maxTries(maxTries);
             return this;
         }
 
@@ -237,7 +237,7 @@ public final class FileQueue<T> {
          * @return config configuration
          */
         public Config retryDelay(int retryDelay) {
-            builder = builder.retryDelay(retryDelay);
+            builder.retryDelay(retryDelay);
             return this;
         }
 
@@ -252,7 +252,7 @@ public final class FileQueue<T> {
          * @return config configuration
          */
         public Config persistRetryDelay(int retryDelay) {
-            builder = builder.persistRetryDelay(retryDelay);
+            builder.persistRetryDelay(retryDelay);
             return this;
         }
 
@@ -267,7 +267,7 @@ public final class FileQueue<T> {
          * @return config configuration
          */
         public Config persistRetryDelayUnit(TimeUnit persistRetryDelayUnit) {
-            builder = builder.persistRetryDelayUnit(persistRetryDelayUnit);
+            builder.persistRetryDelayUnit(persistRetryDelayUnit);
             return this;
         }
 
@@ -282,7 +282,7 @@ public final class FileQueue<T> {
          * @return config configuration
          */
         public Config maxRetryDelay(int maxRetryDelay) {
-            builder = builder.maxRetryDelay(maxRetryDelay);
+            builder.maxRetryDelay(maxRetryDelay);
             return this;
         }
 
@@ -298,7 +298,7 @@ public final class FileQueue<T> {
          * @return config configuration
          */
         public Config retryDelayUnit(TimeUnit retryDelayUnit) {
-            builder = builder.retryDelayUnit(retryDelayUnit);
+            builder.retryDelayUnit(retryDelayUnit);
             return this;
         }
 
@@ -343,7 +343,7 @@ public final class FileQueue<T> {
          * @return config configuration
          */
         public <T> Config expiration(Expiration<T> expiration) {
-            builder = builder.expiration(expiration);
+            builder.expiration(expiration);
             return this;
         }
 
@@ -358,7 +358,7 @@ public final class FileQueue<T> {
          * @return config configuration
          */
         public Config maxQueueSize(int maxQueueSize) {
-            builder = builder.maxQueueSize(maxQueueSize);
+            builder.maxQueueSize(maxQueueSize);
             return this;
         }
 
@@ -407,8 +407,6 @@ public final class FileQueue<T> {
             // mvstore throws a null ptr exception when out of disk space
         } catch (NullPointerException npe) {
             throw new IOException("not enough disk space");
-        } catch (Exception e) {
-            throw e;
         }
     }
 
@@ -434,8 +432,6 @@ public final class FileQueue<T> {
             // mvstore throws a null ptr exception when out of disk space
         } catch (NullPointerException npe) {
             throw new IOException("not enough disk space");
-        } catch (Exception e) {
-            throw e;
         }
     }
 
@@ -459,8 +455,6 @@ public final class FileQueue<T> {
             // mvstore throws a null ptr exception when out of disk space
         } catch (NullPointerException npe) {
             throw new IOException("not enough disk space");
-        } catch (Exception e) {
-            throw e;
         }
     }
 
