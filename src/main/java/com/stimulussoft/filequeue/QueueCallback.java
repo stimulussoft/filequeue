@@ -8,15 +8,15 @@ package com.stimulussoft.filequeue;
  * @author Valentin Popov (Stimulus Software)
  */
 
-
+@Deprecated
 public interface QueueCallback<T> {
 
     /**
      * Called when a slot is available in the queue for processing.
      * @param fileQueueItem the item subject to processing
-     * @throws Exception thrown if something goes wrong, for example, run out of diskspace.
+     * @throws RuntimeException thrown if something goes wrong, for example, run out of diskspace.
      */
 
-    void availableSlot(final T fileQueueItem) throws Exception;
+    void availableSlot(final T fileQueueItem);
 
 }

@@ -20,9 +20,11 @@ import com.stimulussoft.filequeue.processor.Expiration;
 import com.stimulussoft.filequeue.processor.QueueProcessor;
 import com.stimulussoft.filequeue.processor.QueueProcessorBuilder;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -390,13 +392,21 @@ public final class FileQueue<T> {
      * @param queueCallback   availableSlot method is executed when slot becomes available
      * @param acquireWait     time to wait before checking if shutdown has occurred
      * @param acquireWaitUnit time unit for acquireWait
-     * @throws Exception thrown if could not obtain an open slot (i.e. queue is full)
+     * @throws RuntimeException thrown when could not obtain an open slot (i.e. queue is full)
+     * @throws NullPointerException if any of param is null
+     * @throws IllegalStateException if queue is not started or can't acquire permit for process
+     * @deprecated use {@link #queueItem(Object, int, TimeUnit)}
      */
 
     @VisibleForTesting
-    public <T1 extends T> void queueItem(final T1 fileQueueItem, QueueCallback<T1> queueCallback, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
-        if (fileQueueItem == null)
-            throw new IllegalArgumentException("filequeue item cannot be null");
+    @Deprecated
+    public <T1 extends T> void queueItem(@Nonnull final T1 fileQueueItem, @Nonnull QueueCallback<T1> queueCallback,
+                                         int acquireWait, @Nonnull TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
+
+        Objects.requireNonNull(fileQueueItem, "fileQueueItem cannot be null");
+        Objects.requireNonNull(queueCallback, "queueCallback cannot be null");
+        Objects.requireNonNull(acquireWaitUnit, "acquireWaitUnit cannot be null");
+
 
         if (!isStarted.get())
             throw new IllegalStateException("queue not started");

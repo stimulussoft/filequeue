@@ -151,15 +151,15 @@ public class QueueProcessor<T> {
      * @param item            queue item
      * @param acquireWait     block for x msec
      * @param acquireWaitUnit wait block for time unit
-     * @throws IllegalStateException if the queue is not running
+     * @throws IllegalStateException if the queue is not running or can't acquire permit
      * @throws IOException           if the item could not be serialized
      */
 
-    public void submit(final T item, int acquireWait, TimeUnit acquireWaitUnit) throws IllegalStateException, IOException, InterruptedException {
+    public void submit(final T item, int acquireWait, TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
         if (!doRun)
             throw new IllegalStateException("file queue {" + getQueueBaseDir() + "} is not running");
         if (!permits.tryAcquire(1, acquireWait, acquireWaitUnit))
-            throw new IOException("filequeue " + queuePath + " is full. {maxQueueSize='" + maxQueueSize + "'}");
+            throw new IllegalStateException("filequeue " + queuePath + " is full. {maxQueueSize='" + maxQueueSize + "'}");
         _submit(item);
     }
 
@@ -180,6 +180,11 @@ public class QueueProcessor<T> {
     }
 
 
+    /**
+     * @param item
+     * @throws IllegalStateException
+     * @throws IOException
+     */
     private void _submit(final T item) throws IllegalStateException, IOException {
         try {
             restorePolled.register();
