@@ -15,6 +15,7 @@
 package com.stimulussoft.filequeue;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.stimulussoft.filequeue.processor.Consumer;
 import com.stimulussoft.filequeue.processor.Expiration;
 import com.stimulussoft.filequeue.processor.QueueProcessor;
@@ -389,50 +390,20 @@ public final class FileQueue<T> {
      * Calls availableSlot when slot becomes available, immediately before queuing
      *
      * @param fileQueueItem   item for queuing
-     * @param queueCallback   availableSlot method is executed when slot becomes available
      * @param acquireWait     time to wait before checking if shutdown has occurred
      * @param acquireWaitUnit time unit for acquireWait
-     * @throws RuntimeException thrown when could not obtain an open slot (i.e. queue is full)
-     * @throws NullPointerException if any of param is null
-     * @throws IllegalStateException if queue is not started or can't acquire permit for process
-     * @deprecated use {@link #queueItem(Object, int, TimeUnit)}
+     * @throws IOException              if item could not be saved to persistent store or other IO issues
+     * @throws InterruptedException     when the acquireWait waiting time is up
+     * @throws NullPointerException     if any of param is null
+     * @throws IllegalArgumentException if acquireWait is less when 0
+     * @throws IllegalStateException    if queue is not started or can't acquire permit for process
      */
-
     @VisibleForTesting
-    @Deprecated
-    public <T1 extends T> void queueItem(@Nonnull final T1 fileQueueItem, @Nonnull QueueCallback<T1> queueCallback,
+    public <T1 extends T> void queueItem(@Nonnull final T1 fileQueueItem,
                                          int acquireWait, @Nonnull TimeUnit acquireWaitUnit) throws IOException, InterruptedException {
-
         Objects.requireNonNull(fileQueueItem, "fileQueueItem cannot be null");
-        Objects.requireNonNull(queueCallback, "queueCallback cannot be null");
         Objects.requireNonNull(acquireWaitUnit, "acquireWaitUnit cannot be null");
-
-
-        if (!isStarted.get())
-            throw new IllegalStateException("queue not started");
-
-        try {
-            queueCallback.availableSlot(fileQueueItem);
-            transferQueue.submit(fileQueueItem, acquireWait, acquireWaitUnit);
-            // mvstore throws a null ptr exception when out of disk space
-        } catch (NullPointerException npe) {
-            throw new IOException("not enough disk space");
-        }
-    }
-
-    /**
-     * Queue item for delivery. Wait for an open slot for a specified period.
-     *
-     * @param fileQueueItem   item for queuing
-     * @param acquireWait     time to wait before checking if shutdown has occurred
-     * @param acquireWaitUnit time unit for acquireWait
-     * @throws IOException          thrown if could not obtain an open slot (i.e. queue is full)
-     * @throws InterruptedException queuing was interrupted due to shutdown
-     */
-
-    public void queueItem(final T fileQueueItem, int acquireWait, TimeUnit acquireWaitUnit) throws Exception {
-        if (fileQueueItem == null)
-            throw new IllegalArgumentException("filequeue item cannot be null");
+        Preconditions.checkArgument(acquireWait >= 0, "acquireWait should be >= 0");
 
         if (!isStarted.get())
             throw new IllegalStateException("queue not started");

@@ -181,9 +181,9 @@ public class QueueProcessor<T> {
 
 
     /**
-     * @param item
-     * @throws IllegalStateException
-     * @throws IOException
+     * @param item to persist
+     * @throws IllegalStateException if attempting to register more than the maximum supported number of parties
+     * @throws IOException           when can't persist item
      */
     private void _submit(final T item) throws IllegalStateException, IOException {
         try {
@@ -200,7 +200,6 @@ public class QueueProcessor<T> {
             restorePolled.arriveAndDeregister();
         }
     }
-
 
     public void close() {
         doRun = false;

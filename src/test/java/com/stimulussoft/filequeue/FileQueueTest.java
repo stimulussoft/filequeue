@@ -271,7 +271,7 @@ public class FileQueueTest {
         for (int i = 0; i < ROUNDS / 10; i++) {
             for (int j = 0; j < 10; j++) {
                 producedTestWithRetriesAndWait.incrementAndGet();
-                queue.queueItem(new TestFileQueueItem(i * 10 + j), queueCallbackTest, 1, TimeUnit.HOURS);
+                queue.queueItem(new TestFileQueueItem(i * 10 + j), 1, TimeUnit.HOURS);
             }
         }
         done(queue, producedTestWithRetriesAndWait, processedTestWithRetriesAndWait, retryTestWithRetriesAndWait, ROUNDS);
