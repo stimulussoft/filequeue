@@ -18,17 +18,29 @@ import java.util.concurrent.Semaphore;
 
 public class AdjustableSemaphore extends Semaphore {
 
-    int numberOfPermits = 0;
+    private int numberOfPermits = 0;
 
     public AdjustableSemaphore() {
         super(0, true);
     }
 
+    /**
+     *
+     * @param desiredPermits
+     * @throws IllegalArgumentException if desiredPermits is negative
+     */
     public synchronized void setMaxPermits(int desiredPermits) {
         if (desiredPermits > numberOfPermits)
             release(desiredPermits - numberOfPermits);
         else if (desiredPermits < numberOfPermits)
             reducePermits(numberOfPermits - desiredPermits);
         numberOfPermits = desiredPermits;
+    }
+
+    /**
+     * @return total number of permits
+     */
+    public int getNumberOfPermits() {
+        return numberOfPermits;
     }
 }
