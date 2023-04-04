@@ -64,11 +64,6 @@
             <name>sourcecode.c.mailarchiva-compute.internal-releases</name>
             <url>https://maven.mailarchiva.org/artifactory/libs-release</url>
         </repository>
-        <snapshotRepository>
-            <id>snapshots</id>
-            <name>sourcecode.c.mailarchiva-compute.internal-snapshots</name>
-            <url>https://maven.mailarchiva.org/artifactory/libs-snapshot</url>
-        </snapshotRepository>
 <!--        <snapshotRepository>-->
 <!--            <id>ossrh</id>-->
 <!--            <url>https://oss.sonatype.org/content/repositories/snapshots</url>-->

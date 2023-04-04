@@ -66,6 +66,7 @@ public class QueueProcessor<T> {
     private final Optional<ScheduledFuture<?>> cleanupTaskScheduler;
     private volatile boolean doRun = true;
     private final int maxTries;
+
     private final int retryDelay;
     private final int persistRetryDelay;
     private final int maxRetryDelay;
@@ -163,10 +164,13 @@ public class QueueProcessor<T> {
     /**
      * Submit item for instant processing with embedded pool. If item can't be processed instant
      * it will be queued on filesystem and processed after.
+     * If queue is full then the current thread becomes disabled for thread scheduling purposes.
+     *
      *
      * @param item queue item
      * @throws IllegalStateException if the queue is not running
      * @throws IOException           if the item could not be serialized
+     * @throws InterruptedException  if current thread interrupted
      */
 
     public void submit(final T item) throws IllegalStateException, IOException, InterruptedException {
@@ -208,7 +212,7 @@ public class QueueProcessor<T> {
     }
 
     /**
-     * @param maxQueueSize
+     * @param maxQueueSize to set
      * @throws IllegalArgumentException if maxQueueSize is negative
      */
     public void setMaxQueueSize(int maxQueueSize) {
