@@ -66,8 +66,6 @@ public class QueueProcessor<T> {
     private final Optional<ScheduledFuture<?>> cleanupTaskScheduler;
     private volatile boolean doRun = true;
     private final int maxTries;
-
-    private int maxQueueSize;
     private final int retryDelay;
     private final int persistRetryDelay;
     private final int maxRetryDelay;
@@ -105,7 +103,6 @@ public class QueueProcessor<T> {
         this.retryDelay = builder.retryDelay;
         this.retryDelayUnit = builder.retryDelayUnit;
         this.maxRetryDelay = builder.maxRetryDelay;
-        this.maxQueueSize = builder.maxQueueSize;
         this.retryDelayAlgorithm = builder.retryDelayAlgorithm;
         mvStoreQueue = new MVStoreQueue(builder.queuePath, builder.queueName);
         if (builder.persistRetryDelay <= 0)
@@ -159,7 +156,7 @@ public class QueueProcessor<T> {
         if (!doRun)
             throw new IllegalStateException("file queue {" + getQueueBaseDir() + "} is not running");
         if (!permits.tryAcquire(1, acquireWait, acquireWaitUnit))
-            throw new IllegalStateException("filequeue " + queuePath + " is full. {maxQueueSize='" + maxQueueSize + "'}");
+            throw new IllegalStateException("filequeue " + queuePath + " is full. {maxQueueSize='" + permits.getNumberOfPermits() + "'}");
         _submit(item);
     }
 
@@ -210,11 +207,12 @@ public class QueueProcessor<T> {
         permits.release(permits.drainPermits());
     }
 
-    public void setMaxQueueSize(int maxQueueSize) throws InterruptedException {
-        this.maxQueueSize = maxQueueSize;
-        permits.release(permits.drainPermits());
-        permits.setMaxPermits(this.maxQueueSize);
-        permits.acquire(Math.min((int) mvStoreQueue.size(), this.maxQueueSize));
+    /**
+     * @param maxQueueSize
+     * @throws IllegalArgumentException if maxQueueSize is negative
+     */
+    public void setMaxQueueSize(int maxQueueSize) {
+        permits.setMaxPermits(maxQueueSize);
     }
 
     public long size() {

@@ -454,10 +454,11 @@ public final class FileQueue<T> {
     /**
      * Set max queue size
      *
-     * @param queueSize size of queue
+     * @param queueSize size of queue, 0 or positive
+     * @throws IllegalArgumentException if queueSize less when 0
      */
-
-    public void setMaxQueueSize(int queueSize) throws InterruptedException {
+    public void setMaxQueueSize(int queueSize) {
+        if (queueSize < 0) throw new IllegalArgumentException();
         if (config != null)
             config = config.maxQueueSize(queueSize);
         if (transferQueue != null)
