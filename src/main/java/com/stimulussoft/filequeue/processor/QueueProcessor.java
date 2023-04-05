@@ -163,7 +163,7 @@ public class QueueProcessor<T> {
 
     /**
      * Submit item for instant processing with embedded pool. If item can't be processed instant
-     * it will be queued on filesystem and processed after.
+     * it will be queued on filesystem and processed after. Blocking call.
      * If queue is full then the current thread becomes disabled for thread scheduling purposes.
      *
      *

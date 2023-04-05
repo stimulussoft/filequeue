@@ -417,10 +417,14 @@ public final class FileQueue<T> {
     }
 
     /**
-     * Queue item for delivery (no blocking)
+     * <p>
+     * Queue item for delivery. If queue is full then the current thread becomes disabled for thread scheduling purposes.
+     * Blocking call till moment any slots will be available.
+     * </p>
      *
      * @param fileQueueItem item for queuing
      * @throws IllegalArgumentException if the wrong arguments were supplied
+     * @throws IllegalStateException    if queue not started
      * @throws IOException              if the item could not be serialized
      */
 
