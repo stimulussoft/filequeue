@@ -156,6 +156,7 @@ public final class FileQueue<T> {
         /**
          * Rather use FileQueue.config(..) to build a new queue configuration.
          *
+         * @param <T> The expected class of the value.
          * @param queueName       name of the queue. Any name can be chosen, so long as it is unique among queues.
          * @param queuePath       writeable path where the queue database will be stored
          * @param type            type of queue item
@@ -326,7 +327,7 @@ public final class FileQueue<T> {
 
         /**
          * Set retry delay consumer
-         *
+         * @param <T> The expected class of the value.
          * @param consumer retry delay consumer
          * @return config configuration
          */
@@ -341,7 +342,7 @@ public final class FileQueue<T> {
 
         /**
          * Set retry delay expiration
-         *
+         * @param <T> The expected class of the value.
          * @param expiration retry delay expiration
          * @return config configuration
          */
@@ -373,11 +374,12 @@ public final class FileQueue<T> {
 
     /**
      * Setup a file queue configuration for pass to startQueue()
-     *
+     * @param <T> The expected class of the value.
      * @param queueName name of the queue
      * @param queuePath location of queue database
      * @param type      type of filequeueitem
      * @param consumer  consumer
+     * @param executorService where to execute
      * @return config configuration
      */
 
@@ -388,7 +390,7 @@ public final class FileQueue<T> {
     /**
      * Queue item for delivery. Wait for an open slot for a specified time period.
      * Calls availableSlot when slot becomes available, immediately before queuing
-     *
+     * @param <T1> The expected class of the value.
      * @param fileQueueItem   item for queuing
      * @param acquireWait     time to wait before checking if shutdown has occurred
      * @param acquireWaitUnit time unit for acquireWait

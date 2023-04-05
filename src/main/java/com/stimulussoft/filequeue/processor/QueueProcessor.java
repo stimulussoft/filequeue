@@ -150,6 +150,7 @@ public class QueueProcessor<T> {
      * @param acquireWait     block for x msec
      * @param acquireWaitUnit wait block for time unit
      * @throws IllegalStateException if the queue is not running or can't acquire permit
+     * @throws InterruptedException  if thread was interrupted
      * @throws IOException           if the item could not be serialized
      */
 
