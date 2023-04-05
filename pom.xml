@@ -22,7 +22,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <jackson>2.13.4</jackson>
+        <jackson>2.13.4.2</jackson>
     </properties>
     <licenses>
         <license>
