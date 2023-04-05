@@ -25,7 +25,6 @@ public class AdjustableSemaphore extends Semaphore {
     }
 
     /**
-     *
      * @param desiredPermits limit
      * @throws IllegalArgumentException if desiredPermits is negative
      */
