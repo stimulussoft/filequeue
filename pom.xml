@@ -4,7 +4,7 @@
     <groupId>com.stimulussoft</groupId>
     <artifactId>filequeue</artifactId>
     <name>file queue project</name>
-    <version>1.3.0-SNAPSHOT</version>
+    <version>1.3.0</version>
     <packaging>jar</packaging>
     <description>Light weight, high performance, simple, reliable and persistent queue</description>
     <url>https://github.com/stimulussoft/filequeue</url>
@@ -59,20 +59,15 @@
         </developer>
     </developers>
     <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
         <repository>
-            <id>central</id>
-            <name>sourcecode.c.mailarchiva-compute.internal-releases</name>
-            <url>https://maven.mailarchiva.org/artifactory/libs-release</url>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/
+            </url>
         </repository>
-<!--        <snapshotRepository>-->
-<!--            <id>ossrh</id>-->
-<!--            <url>https://oss.sonatype.org/content/repositories/snapshots</url>-->
-<!--        </snapshotRepository>-->
-<!--        <repository>-->
-<!--            <id>ossrh</id>-->
-<!--            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/-->
-<!--            </url>-->
-<!--        </repository>-->
     </distributionManagement>
     <reporting>
         <plugins>
