@@ -91,7 +91,7 @@ public class QueueProcessor<T> {
         if (builder.queuePath == null) throw new IllegalArgumentException("queue path must be specified");
         if (builder.type == null) throw new IllegalArgumentException("item type must be specified");
         if (builder.consumer == null) throw new IllegalArgumentException("consumer must be specified");
-        objectMapper = createObjectMapper();
+        objectMapper = Optional.ofNullable(builder.objectMapper).orElse(createObjectMapper());
         if (!objectMapper.canSerialize(objectMapper.constructType(builder.type).getClass()))
             throw new IllegalArgumentException("The given type is not serializable. it cannot be serialized by jackson");
         this.queueName = builder.queueName;

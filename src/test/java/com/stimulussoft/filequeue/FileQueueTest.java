@@ -1,5 +1,8 @@
 package com.stimulussoft.filequeue;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Maps;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
@@ -12,13 +15,17 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.ZonedDateTime;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.fail;
@@ -107,6 +114,50 @@ public class FileQueueTest {
         MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
 
     }
+    @Test
+    public void testItemWithJava8DateTimeWithRetries() throws Exception {
+        String queueName = "testItemWithJava8DateTimeWithoutRetries";
+        Path db = setup("filequeue test java8 datetime with retries", queueName, producedTestWithRetries, processedTestWithRetries);
+        retryTestWithRetries.clear();
+
+        MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
+        FileQueue<FileQueueItem> queue = FileQueue.fileQueue();
+        FileQueue.Config config = FileQueue.config(queueName, db, TestFileQueueItemWithDateTime.class, new TestRetryConsumer2(), executorService)
+                .maxQueueSize(MAXQUEUESIZE).maxTries(RETRIES)
+                .retryDelay(RETRYDELAY).retryDelayUnit(RetryDelayTimeUnit).persistRetryDelay(1);
+
+        JsonMapper jsonMapper = JsonMapper.builder()
+                .findAndAddModules()
+                .addModule(new JavaTimeModule())
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .build();
+
+        config.objectMapper(jsonMapper);
+
+        queue.startQueue(config);
+        Assert.assertEquals(queue.getConfig().getMaxTries(), RETRIES);
+        Assert.assertEquals(queue.getConfig().getRetryDelay(), RETRYDELAY);
+        Assert.assertEquals(queue.getConfig().getRetryDelayUnit(), RetryDelayTimeUnit);
+
+        // we will use a thread pool here to test if queueItem() method is thread-safe.
+        ExecutorService executor = Executors.newFixedThreadPool(6);
+        for (int i = 0; i < ROUNDS; i++) {
+            final int no = i;
+            executor.execute(() -> {
+                producedTestWithRetries.incrementAndGet();
+                try {
+                    queue.queueItem(new TestFileQueueItemWithDateTime(no, ZonedDateTime.now()), 1, TimeUnit.MINUTES);
+                } catch (Exception e) {
+                    fail("failed push items with 60 seconds");
+                }
+            });
+        }
+        done(queue, producedTestWithRetries, processedTestWithRetries, retryTestWithRetries, ROUNDS);
+        executor.shutdown();
+        queue.stopQueue();
+        MoreFiles.deleteDirectoryContents(db, RecursiveDeleteOption.ALLOW_INSECURE);
+    }
+
 
     @Test
     public void testWithRetries() throws Exception {
@@ -389,6 +440,26 @@ public class FileQueueTest {
             return id;
         }
 
+    }
+
+    static class TestFileQueueItemWithDateTime extends TestFileQueueItem {
+        ZonedDateTime dateTime;
+
+        public TestFileQueueItemWithDateTime() {
+        }
+
+        public TestFileQueueItemWithDateTime(Integer id, ZonedDateTime dateTime) {
+            super(id);
+            this.dateTime = dateTime;
+        }
+
+        public ZonedDateTime getDateTime() {
+            return dateTime;
+        }
+
+        public void setDateTime(ZonedDateTime dateTime) {
+            this.dateTime = dateTime;
+        }
     }
 
 
