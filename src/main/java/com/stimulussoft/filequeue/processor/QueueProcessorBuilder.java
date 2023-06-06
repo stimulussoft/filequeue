@@ -270,6 +270,10 @@ public final class QueueProcessorBuilder<T> {
         return this;
     }
 
+    public ObjectMapper getObjectMapper() {
+        return this.objectMapper;
+    }
+
     public <T1 extends T> QueueProcessor build() throws IOException, IllegalStateException, IllegalArgumentException, InterruptedException {
         return new QueueProcessor<>(this);
     }

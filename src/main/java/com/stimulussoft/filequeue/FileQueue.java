@@ -14,6 +14,7 @@
 
 package com.stimulussoft.filequeue;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.stimulussoft.filequeue.processor.Consumer;
@@ -370,6 +371,19 @@ public final class FileQueue<T> {
             return builder.getMaxQueueSize();
         }
 
+        /**
+         * Set a custom {@link ObjectMapper} to use for serializing and deserializing {@link FileQueueItem}
+         * @param objectMapper ObjectMapper instance
+         * @return config configuration
+         */
+        public Config objectMapper(ObjectMapper objectMapper) {
+            builder.objectMapper(objectMapper);
+            return this;
+        }
+
+        public ObjectMapper getObjectMapper() {
+            return builder.getObjectMapper();
+        }
     }
 
     /**
